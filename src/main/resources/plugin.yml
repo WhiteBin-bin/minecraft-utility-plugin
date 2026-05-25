@@ -1,0 +1,13 @@
+name: minecraft_plugin
+version: '${version}'
+
+main: org.WhiteBin.minecraftplugin.minecraftPlugin
+api-version: '1.21.11'
+load: POSTWORLD
+
+commands:
+  storage:
+    description: 개인 창고를 엽니다. OP는 다른 유저 창고도 열 수 있습니다.
+    usage: /storage [player]
+    aliases:
+      - 창고

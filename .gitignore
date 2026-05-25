@@ -1,0 +1,41 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# Minecraft server/runtime files
+run/
+server/
+plugins/
+world/
+world_nether/
+world_the_end/
+logs/
+crash-reports/
+eula.txt
+banned-ips.json
+banned-players.json
+ops.json
+usercache.json
+whitelist.json
+
+# Local config and OS files
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
