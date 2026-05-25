@@ -1,5 +1,8 @@
 package org.WhiteBin.minecraftplugin.storage.service;
 
+import org.WhiteBin.minecraftplugin.storage.model.StorageShareInfo;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogInfo;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogType;
 import org.WhiteBin.minecraftplugin.storage.repository.StorageRepository;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -403,6 +406,71 @@ class StorageServiceTest {
     }
 
     /**
+     * 전달된 창고 로그 정보를 저장소에 기록하는지 검증합니다.
+     */
+    @Test
+    void recordLogSavesStorageLog() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+        StorageLogInfo logInfo = new StorageLogInfo("2026-05-25 10:00:00", StorageLogType.CLEAR, actorUuid, "actor", ownerUuid, "owner", "actor님이 창고를 초기화했습니다.");
+
+        // when
+        storageService.recordLog(ownerUuid, logInfo);
+
+        // then
+        assertEquals(ownerUuid, storageRepository.savedLogOwnerUuid);
+        assertEquals(logInfo, storageRepository.savedLogInfo);
+    }
+
+    /**
+     * 작업 정보를 이용하여 생성한 창고 로그를 저장소에 기록하는지 검증합니다.
+     */
+    @Test
+    void recordLogCreatesAndSavesStorageLog() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        storageService.recordLog(StorageLogType.SORT, actorUuid, "actor", ownerUuid, "owner", "actor님이 창고를 정렬했습니다.");
+
+        // then
+        assertEquals(ownerUuid, storageRepository.savedLogOwnerUuid);
+        assertEquals(StorageLogType.SORT, storageRepository.savedLogInfo.type());
+        assertEquals(actorUuid, storageRepository.savedLogInfo.actorUuid());
+        assertEquals("actor", storageRepository.savedLogInfo.actorName());
+        assertEquals(ownerUuid, storageRepository.savedLogInfo.ownerUuid());
+        assertEquals("owner", storageRepository.savedLogInfo.ownerName());
+        assertEquals("actor님이 창고를 정렬했습니다.", storageRepository.savedLogInfo.detail());
+    }
+
+    /**
+     * 저장소에서 불러온 창고 로그 목록을 반환하는지 검증합니다.
+     */
+    @Test
+    void getStorageLogsReturnsRepositoryResult() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        StorageLogInfo logInfo = new StorageLogInfo("2026-05-25 10:00:00", StorageLogType.SHARE, actorUuid, "actor", ownerUuid, "owner", "actor님이 target님에게 창고를 공유했습니다.");
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        storageRepository.storageLogs = List.of(logInfo);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        List<StorageLogInfo> storageLogs = storageService.getStorageLogs(ownerUuid);
+
+        // then
+        assertEquals(1, storageLogs.size());
+        assertEquals(logInfo, storageLogs.get(0));
+    }
+
+    /**
      * {@link StorageService} 테스트에서 파일 시스템 접근 없이 창고 크기 저장을 검증하기 위한 저장소입니다.
      * <p>
      * 창고 크기 조회와 저장만 메모리 값으로 대체합니다.
@@ -431,6 +499,9 @@ class StorageServiceTest {
         private int removeShareCount;
         private List<StorageShareInfo> sharedUsers = List.of();
         private List<StorageShareInfo> sharedStorages = List.of();
+        private UUID savedLogOwnerUuid;
+        private StorageLogInfo savedLogInfo;
+        private List<StorageLogInfo> storageLogs = List.of();
 
         /**
          * 테스트에서 불러올 창고 크기를 지정하여 저장소를 생성합니다.
@@ -599,6 +670,29 @@ class StorageServiceTest {
         @Override
         public List<StorageShareInfo> loadSharedStorages(UUID targetUuid) {
             return sharedStorages;
+        }
+
+        /**
+         * 저장 요청으로 전달된 창고 로그 정보를 메모리에 기록합니다.
+         *
+         * @param ownerUuid 창고 소유자 UUID
+         * @param logInfo 저장할 창고 로그 정보
+         */
+        @Override
+        public void saveLog(UUID ownerUuid, StorageLogInfo logInfo) {
+            savedLogOwnerUuid = ownerUuid;
+            savedLogInfo = logInfo;
+        }
+
+        /**
+         * 테스트에서 지정한 창고 로그 목록을 반환합니다.
+         *
+         * @param ownerUuid 창고 소유자 UUID
+         * @return 테스트용 창고 로그 목록
+         */
+        @Override
+        public List<StorageLogInfo> loadLogs(UUID ownerUuid) {
+            return storageLogs;
         }
 
         /**

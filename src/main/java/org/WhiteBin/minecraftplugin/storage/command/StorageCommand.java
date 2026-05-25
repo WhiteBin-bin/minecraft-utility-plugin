@@ -1,8 +1,10 @@
 package org.WhiteBin.minecraftplugin.storage.command;
 
 import lombok.RequiredArgsConstructor;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogInfo;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogType;
 import org.WhiteBin.minecraftplugin.storage.service.StorageService;
-import org.WhiteBin.minecraftplugin.storage.service.StorageShareInfo;
+import org.WhiteBin.minecraftplugin.storage.model.StorageShareInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -17,7 +19,7 @@ import java.util.Locale;
  * 개인 창고 명령어 처리를 담당하는 {@link CommandExecutor} 구현체입니다.
  * <p>
  * 플레이어의 개인 창고 열기, OP의 다른 유저 창고 열기,
- * 개인 창고 확장, 축소, 정렬, 초기화, 공유 명령어를 처리합니다.
+ * 개인 창고 확장, 축소, 정렬, 초기화, 공유, 로그 명령어를 처리합니다.
  */
 @RequiredArgsConstructor
 public class StorageCommand implements CommandExecutor {
@@ -78,6 +80,7 @@ public class StorageCommand implements CommandExecutor {
             case "unshare", "공유해제" -> handleUnshareCommand(player, args);
             case "shares", "공유목록" -> handleMySharesCommand(player);
             case "shared", "공유받은목록" -> handleSharedStoragesCommand(player);
+            case "logs", "로그" -> handleLogsCommand(player, args);
             default -> handleTargetStorageCommand(player, args[0]);
         }
     }
@@ -140,6 +143,7 @@ public class StorageCommand implements CommandExecutor {
         }
 
         int expandedSize = storageService.expandStorage(target.getUniqueId());
+        storageService.recordLog(StorageLogType.EXPAND, player.getUniqueId(), player.getName(), target.getUniqueId(), targetName, player.getName() + "님이 창고를 " + expandedSize + "칸으로 확장했습니다.");
         player.sendMessage(targetName + "님의 창고가 " + expandedSize + "칸으로 확장되었습니다.");
     }
 
@@ -182,6 +186,7 @@ public class StorageCommand implements CommandExecutor {
         }
 
         int shrinkSize = storageService.shrinkStorage(target.getUniqueId());
+        storageService.recordLog(StorageLogType.SHRINK, player.getUniqueId(), player.getName(), target.getUniqueId(), targetName, player.getName() + "님이 창고를 " + shrinkSize + "칸으로 축소했습니다.");
         player.sendMessage(targetName + "님의 창고가 " + shrinkSize + "칸으로 축소되었습니다.");
     }
 
@@ -217,6 +222,7 @@ public class StorageCommand implements CommandExecutor {
 
         String targetName = getTargetName(target, fallbackName);
         storageService.sortStorage(target.getUniqueId());
+        storageService.recordLog(StorageLogType.SORT, player.getUniqueId(), player.getName(), target.getUniqueId(), targetName, player.getName() + "님이 창고를 정렬했습니다.");
         player.sendMessage(targetName + "님의 창고를 정렬했습니다.");
     }
 
@@ -252,6 +258,7 @@ public class StorageCommand implements CommandExecutor {
 
         String targetName = getTargetName(target, fallbackName);
         storageService.clearStorage(target.getUniqueId());
+        storageService.recordLog(StorageLogType.CLEAR, player.getUniqueId(), player.getName(), target.getUniqueId(), targetName, player.getName() + "님이 창고를 초기화했습니다.");
         player.sendMessage(targetName + "님의 창고를 초기화했습니다.");
     }
 
@@ -288,6 +295,7 @@ public class StorageCommand implements CommandExecutor {
             return;
         }
 
+        storageService.recordLog(StorageLogType.SHARE, player.getUniqueId(), player.getName(), player.getUniqueId(), player.getName(), player.getName() + "님이 " + targetName + "님에게 창고를 공유했습니다.");
         player.sendMessage(targetName + "님에게 창고를 공유했습니다.");
     }
 
@@ -319,6 +327,7 @@ public class StorageCommand implements CommandExecutor {
             return;
         }
 
+        storageService.recordLog(StorageLogType.UNSHARE, player.getUniqueId(), player.getName(), player.getUniqueId(), player.getName(), player.getName() + "님이 " + targetName + "님에 대한 창고 공유를 해제했습니다.");
         player.sendMessage(targetName + "님에 대한 창고 공유를 해제했습니다.");
     }
 
@@ -354,6 +363,43 @@ public class StorageCommand implements CommandExecutor {
 
         player.sendMessage("[내가 공유받은 창고]");
         sharedStorages.forEach(sharedStorage -> player.sendMessage("- " + sharedStorage.name() + "의 창고"));
+    }
+
+    /**
+     * OP 전용 창고 로그 조회 명령어를 처리합니다.
+     * <p>
+     * 대상 플레이어의 최근 창고 작업 로그 10개를 채팅 메시지로 출력합니다.
+     *
+     * @param player 명령어를 실행한 플레이어
+     * @param args 명령어 인자 목록
+     */
+    private void handleLogsCommand(Player player, String[] args) {
+        if (!hasOpPermission(player, "창고 로그는 OP만 조회할 수 있습니다.")) {
+            return;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage("사용법: /storage logs <player>");
+            return;
+        }
+
+        OfflinePlayer target = findTarget(player, args[1]);
+
+        if (target == null) {
+            return;
+        }
+
+        String targetName = getTargetName(target, args[1]);
+        List<StorageLogInfo> logs = storageService.getStorageLogs(target.getUniqueId());
+
+        if (logs.isEmpty()) {
+            player.sendMessage(targetName + "님의 창고 로그가 없습니다.");
+            return;
+        }
+
+        player.sendMessage("[" + targetName + "님의 창고 로그]");
+        logs.subList(Math.max(0, logs.size() - 10), logs.size())
+                .forEach(log -> player.sendMessage("- [" + log.createdAt() + "] " + log.type().name() + " " + log.detail()));
     }
 
     /**

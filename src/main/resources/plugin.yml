@@ -7,7 +7,7 @@ load: POSTWORLD
 
 commands:
   storage:
-    description: 개인 창고를 열거나 크기 변경, 정렬, 초기화, 공유합니다. OP는 다른 유저 창고도 관리할 수 있습니다.
-    usage: /storage [player|expand [player]|shrink [player]|sort [player]|clear [player]|share <player>|unshare <player>|shares|shared]
+    description: 개인 창고를 열거나 크기 변경, 정렬, 초기화, 공유, 로그 조회를 합니다. OP는 다른 유저 창고도 관리할 수 있습니다.
+    usage: /storage [player|expand [player]|shrink [player]|sort [player]|clear [player]|share <player>|unshare <player>|shares|shared|logs <player>]
     aliases:
       - 창고
