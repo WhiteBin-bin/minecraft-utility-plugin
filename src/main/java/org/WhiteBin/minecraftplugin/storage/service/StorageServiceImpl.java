@@ -7,11 +7,12 @@ import org.WhiteBin.minecraftplugin.storage.repository.StorageRepository;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.UUID;
 
 /**
- * 개인 창고의 열기, 저장, 확장, 축소, 정렬 기능을 처리하는 {@link StorageService} 구현체입니다.
+ * 개인 창고의 열기, 저장, 확장, 축소, 정렬, 초기화 기능을 처리하는 {@link StorageService} 구현체입니다.
  * <p>
  * 창고 데이터를 저장소에서 불러와 인벤토리를 생성하고,
  * 창고 크기 정책과 정렬 정책에 따라 플레이어별 창고 데이터를 변경합니다.
@@ -150,6 +151,19 @@ public class StorageServiceImpl implements StorageService {
     public void sortStorage(UUID ownerUuid) {
         int storageSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
         storageRepository.saveItems(ownerUuid, storageSortPolicy.sort(storageRepository.loadItems(ownerUuid, storageSize)), storageSize);
+    }
+
+    /**
+     * 특정 소유자의 개인 창고 아이템을 모두 비우고 저장합니다.
+     * <p>
+     * 창고 크기는 기존 저장 크기를 유지합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     */
+    @Override
+    public void clearStorage(UUID ownerUuid) {
+        int storageSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
+        storageRepository.saveItems(ownerUuid, new ItemStack[storageSize], storageSize);
     }
 
     /**

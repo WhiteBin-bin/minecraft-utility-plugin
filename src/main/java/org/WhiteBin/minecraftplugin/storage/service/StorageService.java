@@ -8,7 +8,7 @@ import java.util.UUID;
 /**
  * 개인 창고 기능에서 제공해야 하는 서비스 계약입니다.
  * <p>
- * 창고 열기, 저장, 크기 변경, 아이템 정렬, 창고 인벤토리 판별 기능을 정의합니다.
+ * 창고 열기, 저장, 크기 변경, 아이템 정렬, 초기화, 창고 인벤토리 판별 기능을 정의합니다.
  */
 public interface StorageService {
 
@@ -83,6 +83,15 @@ public interface StorageService {
      * @param ownerUuid 창고 소유자 UUID
      */
     void sortStorage(UUID ownerUuid);
+
+    /**
+     * 특정 소유자의 개인 창고 아이템을 모두 비우고 저장합니다.
+     * <p>
+     * 창고 크기는 기존 저장 크기를 유지합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     */
+    void clearStorage(UUID ownerUuid);
 
     /**
      * 개인 창고 인벤토리 내용을 창고 소유자 UUID 기준으로 저장합니다.
