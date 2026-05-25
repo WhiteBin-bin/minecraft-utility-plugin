@@ -5,6 +5,7 @@
 ## 기능
 
 - 개인 창고 명령어
+- 개인 창고 확장
 - OP의 다른 유저 창고 접근
 - 플레이어 UUID 기준 창고 데이터 저장
 
@@ -14,6 +15,8 @@
 | --- | --- |---------------------------|
 | `/storage` | `/창고` | 자신의 개인 창고를 엽니다.           |
 | `/storage <player>` | `/창고 <player>` | 다른 유저의 창고를 엽니다.(OP만 사용가능) |
+| `/storage expand` | `/창고 확장` | 자신의 개인 창고를 9칸 확장합니다. |
+| `/storage expand <player>` | `/창고 확장 <player>` | 다른 유저의 개인 창고를 9칸 확장합니다.(OP만 사용가능) |
 
 ## 요구사항
 
@@ -39,3 +42,7 @@ build/libs/
 ```bash
 ./gradlew runServer
 ```
+
+## 컨벤션
+
+- [커밋 컨벤션](.github/COMMIT_CONVENTION.md)

@@ -7,7 +7,7 @@ load: POSTWORLD
 
 commands:
   storage:
-    description: 개인 창고를 엽니다. OP는 다른 유저 창고도 열 수 있습니다.
-    usage: /storage [player]
+    description: 개인 창고를 열거나 확장합니다. OP는 다른 유저 창고도 관리할 수 있습니다.
+    usage: /storage [player|expand [player]]
     aliases:
       - 창고
