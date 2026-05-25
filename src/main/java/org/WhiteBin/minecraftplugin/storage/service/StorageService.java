@@ -3,12 +3,13 @@ package org.WhiteBin.minecraftplugin.storage.service;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
  * 개인 창고 기능에서 제공해야 하는 서비스 계약입니다.
  * <p>
- * 창고 열기, 저장, 크기 변경, 아이템 정렬, 초기화, 창고 인벤토리 판별 기능을 정의합니다.
+ * 창고 열기, 저장, 크기 변경, 아이템 정렬, 초기화, 공유, 창고 인벤토리 판별 기능을 정의합니다.
  */
 public interface StorageService {
 
@@ -92,6 +93,55 @@ public interface StorageService {
      * @param ownerUuid 창고 소유자 UUID
      */
     void clearStorage(UUID ownerUuid);
+
+    /**
+     * 개인 창고를 특정 플레이어에게 공유합니다.
+     * <p>
+     * 이미 공유된 대상이거나 자기 자신에게 공유하는 경우 저장하지 않습니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param ownerName 창고 소유자 이름
+     * @param targetUuid 공유받을 플레이어 UUID
+     * @param targetName 공유받을 플레이어 이름
+     * @return 새 공유 관계가 저장되었으면 {@code true}
+     */
+    boolean shareStorage(UUID ownerUuid, String ownerName, UUID targetUuid, String targetName);
+
+    /**
+     * 개인 창고 공유를 해제합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param targetUuid 공유 해제 대상 플레이어 UUID
+     * @return 기존 공유 관계가 제거되었으면 {@code true}
+     */
+    boolean unshareStorage(UUID ownerUuid, UUID targetUuid);
+
+    /**
+     * 특정 플레이어가 대상 창고를 열 수 있는지 확인합니다.
+     * <p>
+     * 자기 자신의 창고이거나 공유받은 창고인 경우 접근을 허용합니다.
+     *
+     * @param viewerUuid 창고를 열어 볼 플레이어 UUID
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 접근 가능한 공유 관계이면 {@code true}
+     */
+    boolean canAccessStorage(UUID viewerUuid, UUID ownerUuid);
+
+    /**
+     * 특정 소유자가 공유 중인 플레이어 목록을 반환합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 공유받은 플레이어 목록
+     */
+    List<StorageShareInfo> getSharedUsers(UUID ownerUuid);
+
+    /**
+     * 특정 플레이어가 공유받은 창고 목록을 반환합니다.
+     *
+     * @param targetUuid 공유받은 플레이어 UUID
+     * @return 공유해준 창고 소유자 목록
+     */
+    List<StorageShareInfo> getSharedStorages(UUID targetUuid);
 
     /**
      * 개인 창고 인벤토리 내용을 창고 소유자 UUID 기준으로 저장합니다.

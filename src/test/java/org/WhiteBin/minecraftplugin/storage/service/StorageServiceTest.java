@@ -5,6 +5,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -220,6 +222,187 @@ class StorageServiceTest {
     }
 
     /**
+     * 새로운 공유 대상이면 창고 공유 정보를 저장하는지 검증합니다.
+     */
+    @Test
+    void shareStorageSavesShareWhenNotShared() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        boolean shared = storageService.shareStorage(ownerUuid, "owner", targetUuid, "target");
+
+        // then
+        assertTrue(shared);
+        assertEquals(ownerUuid, storageRepository.savedShareOwnerUuid);
+        assertEquals("owner", storageRepository.savedShareOwnerName);
+        assertEquals(targetUuid, storageRepository.savedShareTargetUuid);
+        assertEquals("target", storageRepository.savedShareTargetName);
+    }
+
+    /**
+     * 이미 공유된 대상이면 창고 공유 정보를 다시 저장하지 않는지 검증합니다.
+     */
+    @Test
+    void shareStorageDoesNotSaveWhenAlreadyShared() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        storageRepository.sharedTargets.add(targetUuid);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        boolean shared = storageService.shareStorage(ownerUuid, "owner", targetUuid, "target");
+
+        // then
+        assertFalse(shared);
+        assertEquals(0, storageRepository.saveShareCount);
+    }
+
+    /**
+     * 자기 자신에게 창고를 공유하지 않는지 검증합니다.
+     */
+    @Test
+    void shareStorageDoesNotSaveWhenTargetIsOwner() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        boolean shared = storageService.shareStorage(ownerUuid, "owner", ownerUuid, "owner");
+
+        // then
+        assertFalse(shared);
+        assertEquals(0, storageRepository.saveShareCount);
+    }
+
+    /**
+     * 공유 중인 대상이면 창고 공유를 해제하는지 검증합니다.
+     */
+    @Test
+    void unshareStorageRemovesShareWhenShared() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        storageRepository.sharedTargets.add(targetUuid);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        boolean unshared = storageService.unshareStorage(ownerUuid, targetUuid);
+
+        // then
+        assertTrue(unshared);
+        assertEquals(ownerUuid, storageRepository.removedShareOwnerUuid);
+        assertEquals(targetUuid, storageRepository.removedShareTargetUuid);
+    }
+
+    /**
+     * 공유 중이 아닌 대상이면 창고 공유 해제를 저장하지 않는지 검증합니다.
+     */
+    @Test
+    void unshareStorageDoesNotRemoveWhenNotShared() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        boolean unshared = storageService.unshareStorage(ownerUuid, targetUuid);
+
+        // then
+        assertFalse(unshared);
+        assertEquals(0, storageRepository.removeShareCount);
+    }
+
+    /**
+     * 자기 창고이거나 공유받은 창고일 때 접근 가능 여부를 반환하는지 검증합니다.
+     */
+    @Test
+    void canAccessStorageAllowsOwnerAndSharedPlayer() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID sharedUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        storageRepository.sharedTargets.add(sharedUuid);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        boolean ownerAccess = storageService.canAccessStorage(ownerUuid, ownerUuid);
+        boolean sharedAccess = storageService.canAccessStorage(sharedUuid, ownerUuid);
+
+        // then
+        assertTrue(ownerAccess);
+        assertTrue(sharedAccess);
+    }
+
+    /**
+     * 공유받지 않은 다른 유저의 창고 접근을 허용하지 않는지 검증합니다.
+     */
+    @Test
+    void canAccessStorageBlocksNotSharedPlayer() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID viewerUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        boolean canAccess = storageService.canAccessStorage(viewerUuid, ownerUuid);
+
+        // then
+        assertFalse(canAccess);
+    }
+
+    /**
+     * 저장소에서 불러온 공유 중인 유저 목록을 반환하는지 검증합니다.
+     */
+    @Test
+    void getSharedUsersReturnsRepositoryResult() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        storageRepository.sharedUsers = List.of(new StorageShareInfo(targetUuid, "target"));
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        List<StorageShareInfo> sharedUsers = storageService.getSharedUsers(ownerUuid);
+
+        // then
+        assertEquals(1, sharedUsers.size());
+        assertEquals(targetUuid, sharedUsers.get(0).uuid());
+        assertEquals("target", sharedUsers.get(0).name());
+    }
+
+    /**
+     * 저장소에서 불러온 공유받은 창고 목록을 반환하는지 검증합니다.
+     */
+    @Test
+    void getSharedStoragesReturnsRepositoryResult() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27);
+        storageRepository.sharedStorages = List.of(new StorageShareInfo(ownerUuid, "owner"));
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        List<StorageShareInfo> sharedStorages = storageService.getSharedStorages(targetUuid);
+
+        // then
+        assertEquals(1, sharedStorages.size());
+        assertEquals(ownerUuid, sharedStorages.get(0).uuid());
+        assertEquals("owner", sharedStorages.get(0).name());
+    }
+
+    /**
      * {@link StorageService} 테스트에서 파일 시스템 접근 없이 창고 크기 저장을 검증하기 위한 저장소입니다.
      * <p>
      * 창고 크기 조회와 저장만 메모리 값으로 대체합니다.
@@ -237,6 +420,17 @@ class StorageServiceTest {
         private UUID savedItemsUuid;
         private ItemStack[] savedItems;
         private int savedItemsSize;
+        private final List<UUID> sharedTargets = new ArrayList<>();
+        private UUID savedShareOwnerUuid;
+        private String savedShareOwnerName;
+        private UUID savedShareTargetUuid;
+        private String savedShareTargetName;
+        private int saveShareCount;
+        private UUID removedShareOwnerUuid;
+        private UUID removedShareTargetUuid;
+        private int removeShareCount;
+        private List<StorageShareInfo> sharedUsers = List.of();
+        private List<StorageShareInfo> sharedStorages = List.of();
 
         /**
          * 테스트에서 불러올 창고 크기를 지정하여 저장소를 생성합니다.
@@ -341,6 +535,70 @@ class StorageServiceTest {
             savedItemsUuid = uuid;
             savedItems = contents;
             savedItemsSize = size;
+        }
+
+        /**
+         * 저장 요청으로 전달된 공유 관계 정보를 메모리에 기록합니다.
+         *
+         * @param ownerUuid 창고 소유자 UUID
+         * @param ownerName 창고 소유자 이름
+         * @param targetUuid 공유받을 플레이어 UUID
+         * @param targetName 공유받을 플레이어 이름
+         */
+        @Override
+        public void saveShare(UUID ownerUuid, String ownerName, UUID targetUuid, String targetName) {
+            savedShareOwnerUuid = ownerUuid;
+            savedShareOwnerName = ownerName;
+            savedShareTargetUuid = targetUuid;
+            savedShareTargetName = targetName;
+            saveShareCount++;
+        }
+
+        /**
+         * 저장 요청으로 전달된 공유 해제 정보를 메모리에 기록합니다.
+         *
+         * @param ownerUuid 창고 소유자 UUID
+         * @param targetUuid 공유 해제 대상 플레이어 UUID
+         */
+        @Override
+        public void removeShare(UUID ownerUuid, UUID targetUuid) {
+            removedShareOwnerUuid = ownerUuid;
+            removedShareTargetUuid = targetUuid;
+            removeShareCount++;
+        }
+
+        /**
+         * 테스트에서 지정한 공유 여부를 반환합니다.
+         *
+         * @param ownerUuid 창고 소유자 UUID
+         * @param targetUuid 공유 여부를 확인할 플레이어 UUID
+         * @return 테스트용 공유 여부
+         */
+        @Override
+        public boolean isSharedWith(UUID ownerUuid, UUID targetUuid) {
+            return sharedTargets.contains(targetUuid);
+        }
+
+        /**
+         * 테스트에서 지정한 공유 중인 플레이어 목록을 반환합니다.
+         *
+         * @param ownerUuid 창고 소유자 UUID
+         * @return 테스트용 공유 중인 플레이어 목록
+         */
+        @Override
+        public List<StorageShareInfo> loadSharedUsers(UUID ownerUuid) {
+            return sharedUsers;
+        }
+
+        /**
+         * 테스트에서 지정한 공유받은 창고 목록을 반환합니다.
+         *
+         * @param targetUuid 공유받은 플레이어 UUID
+         * @return 테스트용 공유받은 창고 목록
+         */
+        @Override
+        public List<StorageShareInfo> loadSharedStorages(UUID targetUuid) {
+            return sharedStorages;
         }
 
         /**
