@@ -77,6 +77,41 @@ public class StorageRepository {
     }
 
     /**
+     * 지정한 슬롯 범위에 저장된 아이템이 있는지 확인합니다.
+     * <p>
+     * 창고 축소 시 제거될 슬롯 범위에 아이템이 남아 있는 경우 축소를 막기 위해 사용합니다.
+     *
+     * @param uuid 창고 소유자 UUID
+     * @param startSlot 확인을 시작할 슬롯 번호
+     * @param endSlot 확인을 끝낼 슬롯 번호
+     * @return 지정한 범위에 아이템이 있으면 {@code true}
+     */
+    public boolean hasItemsInRange(UUID uuid, int startSlot, int endSlot) {
+        File file = getStorageFile(uuid);
+
+        if (!file.exists()) {
+            return false;
+        }
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        List<?> items = config.getList("items");
+
+        if (items == null) {
+            return false;
+        }
+
+        for (int i = startSlot; i < endSlot && i < items.size(); i++) {
+            Object item = items.get(i);
+
+            if (item instanceof ItemStack itemStack && !itemStack.getType().isAir() && itemStack.getAmount() > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * YAML 설정 파일을 디스크에 저장합니다.
      * <p>
      * 저장 중 오류가 발생하면 플러그인 로그에 경고를 남깁니다.

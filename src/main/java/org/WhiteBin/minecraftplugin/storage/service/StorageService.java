@@ -9,10 +9,10 @@ import org.bukkit.inventory.Inventory;
 import java.util.UUID;
 
 /**
- * 개인 창고의 열기, 저장, 확장 기능을 처리하는 서비스입니다.
+ * 개인 창고의 열기, 저장, 확장, 축소 기능을 처리하는 서비스입니다.
  * <p>
  * 창고 데이터를 저장소에서 불러와 인벤토리를 생성하고,
- * 창고 크기 정책에 따라 플레이어별 창고 확장을 수행합니다.
+ * 창고 크기 정책에 따라 플레이어별 창고 크기 변경을 수행합니다.
  */
 @RequiredArgsConstructor
 public class StorageService {
@@ -71,6 +71,31 @@ public class StorageService {
     }
 
     /**
+     * 특정 소유자의 개인 창고 크기를 한 단계 축소합니다.
+     * <p>
+     * 이미 최소 크기이거나 축소될 슬롯 범위에 아이템이 있는 경우 크기를 변경하지 않고 현재 크기를 반환합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 축소 후 창고 크기 또는 현재 창고 크기
+     */
+    public int shrinkStorage(UUID ownerUuid) {
+        int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
+
+        if (!storageSizePolicy.canShrink(currentSize)) {
+            return currentSize;
+        }
+
+        int shrinkSize = storageSizePolicy.shrink(currentSize);
+
+        if (storageRepository.hasItemsInRange(ownerUuid, shrinkSize, currentSize)) {
+            return currentSize;
+        }
+
+        storageRepository.saveSize(ownerUuid, shrinkSize);
+        return shrinkSize;
+    }
+
+    /**
      * 특정 소유자의 개인 창고가 확장 가능한 상태인지 확인합니다.
      *
      * @param ownerUuid 창고 소유자 UUID
@@ -79,6 +104,29 @@ public class StorageService {
     public boolean canExpand(UUID ownerUuid) {
         int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
         return storageSizePolicy.canExpand(currentSize);
+    }
+
+    /**
+     * 특정 소유자의 개인 창고가 축소 가능한 상태인지 확인합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 최소 크기보다 크면 {@code true}
+     */
+    public boolean canShrink(UUID ownerUuid) {
+        int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
+        return storageSizePolicy.canShrink(currentSize);
+    }
+
+    /**
+     * 특정 소유자의 개인 창고에서 축소될 슬롯 범위에 아이템이 있는지 확인합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 축소될 슬롯 범위에 아이템이 있으면 {@code true}
+     */
+    public boolean hasItemsInShrinkRange(UUID ownerUuid) {
+        int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
+        int shrinkSize = storageSizePolicy.shrink(currentSize);
+        return storageRepository.hasItemsInRange(ownerUuid, shrinkSize, currentSize);
     }
 
     /**
