@@ -1,20 +1,25 @@
 package org.WhiteBin.minecraftplugin.storage.repository;
 
 import lombok.RequiredArgsConstructor;
+import org.WhiteBin.minecraftplugin.storage.service.StorageShareInfo;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * 플레이어 개인 창고 데이터를 파일에 저장하고 불러오는 저장소입니다.
  * <p>
- * 플레이어 UUID별 YAML 파일을 사용하여 창고 아이템 목록과 창고 크기를 관리합니다.
+ * 플레이어 UUID별 YAML 파일을 사용하여 창고 아이템 목록, 창고 크기, 공유 관계를 관리합니다.
  */
 @RequiredArgsConstructor
 public class StorageRepository {
@@ -163,6 +168,111 @@ public class StorageRepository {
     }
 
     /**
+     * 창고 소유자가 특정 플레이어에게 창고를 공유하도록 저장합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param ownerName 창고 소유자 이름
+     * @param targetUuid 공유받을 플레이어 UUID
+     * @param targetName 공유받을 플레이어 이름
+     */
+    public void saveShare(UUID ownerUuid, String ownerName, UUID targetUuid, String targetName) {
+        File file = getStorageFile(ownerUuid);
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        config.set("ownerName", ownerName);
+        config.set("shares." + targetUuid + ".name", targetName);
+        saveConfig(ownerUuid, file, config);
+    }
+
+    /**
+     * 창고 소유자의 특정 공유 관계를 제거합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param targetUuid 공유 해제 대상 플레이어 UUID
+     */
+    public void removeShare(UUID ownerUuid, UUID targetUuid) {
+        File file = getStorageFile(ownerUuid);
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        config.set("shares." + targetUuid, null);
+        saveConfig(ownerUuid, file, config);
+    }
+
+    /**
+     * 특정 플레이어가 창고 소유자에게 공유받은 상태인지 확인합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param targetUuid 공유 여부를 확인할 플레이어 UUID
+     * @return 공유받은 상태이면 {@code true}
+     */
+    public boolean isSharedWith(UUID ownerUuid, UUID targetUuid) {
+        File file = getStorageFile(ownerUuid);
+
+        if (!file.exists()) {
+            return false;
+        }
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        return config.isConfigurationSection("shares." + targetUuid);
+    }
+
+    /**
+     * 창고 소유자가 공유 중인 플레이어 목록을 불러옵니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 공유받은 플레이어 목록
+     */
+    public List<StorageShareInfo> loadSharedUsers(UUID ownerUuid) {
+        File file = getStorageFile(ownerUuid);
+
+        if (!file.exists()) {
+            return List.of();
+        }
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        ConfigurationSection shares = config.getConfigurationSection("shares");
+
+        if (shares == null) {
+            return List.of();
+        }
+
+        return shares.getKeys(false)
+                .stream()
+                .map(key -> new StorageShareInfo(UUID.fromString(key), shares.getString(key + ".name", key)))
+                .sorted(Comparator.comparing(StorageShareInfo::name))
+                .toList();
+    }
+
+    /**
+     * 특정 플레이어가 공유받은 창고 목록을 불러옵니다.
+     *
+     * @param targetUuid 공유받은 플레이어 UUID
+     * @return 공유해준 창고 소유자 목록
+     */
+    public List<StorageShareInfo> loadSharedStorages(UUID targetUuid) {
+        File[] files = getStorageFolder().listFiles((folder, name) -> name.endsWith(".yml"));
+
+        if (files == null) {
+            return List.of();
+        }
+
+        List<StorageShareInfo> sharedStorages = new ArrayList<>();
+
+        for (File file : files) {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+            if (config.isConfigurationSection("shares." + targetUuid)) {
+                UUID ownerUuid = UUID.fromString(file.getName().replace(".yml", ""));
+                sharedStorages.add(new StorageShareInfo(ownerUuid, config.getString("ownerName", ownerUuid.toString())));
+            }
+        }
+
+        return sharedStorages.stream()
+                .sorted(Comparator.comparing(StorageShareInfo::name))
+                .toList();
+    }
+
+    /**
      * YAML 설정 파일을 디스크에 저장합니다.
      * <p>
      * 저장 중 오류가 발생하면 플러그인 로그에 경고를 남깁니다.
@@ -220,12 +330,25 @@ public class StorageRepository {
      * @return 창고 데이터가 저장될 YAML 파일
      */
     private File getStorageFile(UUID uuid) {
+        File storageFolder = getStorageFolder();
+
+        return new File(storageFolder, uuid + ".yml");
+    }
+
+    /**
+     * 개인 창고 데이터가 저장되는 폴더를 반환합니다.
+     * <p>
+     * 폴더가 존재하지 않으면 새로 생성합니다.
+     *
+     * @return 개인 창고 데이터 저장 폴더
+     */
+    private File getStorageFolder() {
         File storageFolder = new File(plugin.getDataFolder(), "storages");
 
         if (!storageFolder.exists()) {
             storageFolder.mkdirs();
         }
 
-        return new File(storageFolder, uuid + ".yml");
+        return storageFolder;
     }
 }

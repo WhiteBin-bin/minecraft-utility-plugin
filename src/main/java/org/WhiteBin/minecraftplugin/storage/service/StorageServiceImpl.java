@@ -9,13 +9,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
- * 개인 창고의 열기, 저장, 확장, 축소, 정렬, 초기화 기능을 처리하는 {@link StorageService} 구현체입니다.
+ * 개인 창고의 열기, 저장, 확장, 축소, 정렬, 초기화, 공유 기능을 처리하는 {@link StorageService} 구현체입니다.
  * <p>
  * 창고 데이터를 저장소에서 불러와 인벤토리를 생성하고,
- * 창고 크기 정책과 정렬 정책에 따라 플레이어별 창고 데이터를 변경합니다.
+ * 창고 크기 정책, 정렬 정책, 공유 관계에 따라 플레이어별 창고 데이터를 변경합니다.
  */
 @RequiredArgsConstructor
 public class StorageServiceImpl implements StorageService {
@@ -164,6 +165,80 @@ public class StorageServiceImpl implements StorageService {
     public void clearStorage(UUID ownerUuid) {
         int storageSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
         storageRepository.saveItems(ownerUuid, new ItemStack[storageSize], storageSize);
+    }
+
+    /**
+     * 개인 창고를 특정 플레이어에게 공유합니다.
+     * <p>
+     * 이미 공유된 대상이거나 자기 자신에게 공유하는 경우 저장하지 않습니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param ownerName 창고 소유자 이름
+     * @param targetUuid 공유받을 플레이어 UUID
+     * @param targetName 공유받을 플레이어 이름
+     * @return 새 공유 관계가 저장되었으면 {@code true}
+     */
+    @Override
+    public boolean shareStorage(UUID ownerUuid, String ownerName, UUID targetUuid, String targetName) {
+        if (ownerUuid.equals(targetUuid) || storageRepository.isSharedWith(ownerUuid, targetUuid)) {
+            return false;
+        }
+
+        storageRepository.saveShare(ownerUuid, ownerName, targetUuid, targetName);
+        return true;
+    }
+
+    /**
+     * 개인 창고 공유를 해제합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param targetUuid 공유 해제 대상 플레이어 UUID
+     * @return 기존 공유 관계가 제거되었으면 {@code true}
+     */
+    @Override
+    public boolean unshareStorage(UUID ownerUuid, UUID targetUuid) {
+        if (!storageRepository.isSharedWith(ownerUuid, targetUuid)) {
+            return false;
+        }
+
+        storageRepository.removeShare(ownerUuid, targetUuid);
+        return true;
+    }
+
+    /**
+     * 특정 플레이어가 대상 창고를 열 수 있는지 확인합니다.
+     * <p>
+     * 자기 자신의 창고이거나 공유받은 창고인 경우 접근을 허용합니다.
+     *
+     * @param viewerUuid 창고를 열어 볼 플레이어 UUID
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 접근 가능한 공유 관계이면 {@code true}
+     */
+    @Override
+    public boolean canAccessStorage(UUID viewerUuid, UUID ownerUuid) {
+        return viewerUuid.equals(ownerUuid) || storageRepository.isSharedWith(ownerUuid, viewerUuid);
+    }
+
+    /**
+     * 특정 소유자가 공유 중인 플레이어 목록을 반환합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 공유받은 플레이어 목록
+     */
+    @Override
+    public List<StorageShareInfo> getSharedUsers(UUID ownerUuid) {
+        return storageRepository.loadSharedUsers(ownerUuid);
+    }
+
+    /**
+     * 특정 플레이어가 공유받은 창고 목록을 반환합니다.
+     *
+     * @param targetUuid 공유받은 플레이어 UUID
+     * @return 공유해준 창고 소유자 목록
+     */
+    @Override
+    public List<StorageShareInfo> getSharedStorages(UUID targetUuid) {
+        return storageRepository.loadSharedStorages(targetUuid);
     }
 
     /**
