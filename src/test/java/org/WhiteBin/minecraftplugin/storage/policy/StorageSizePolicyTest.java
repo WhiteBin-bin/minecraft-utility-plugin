@@ -1,4 +1,4 @@
-package org.WhiteBin.minecraftplugin.storage.service;
+package org.WhiteBin.minecraftplugin.storage.policy;
 
 import org.junit.jupiter.api.Test;
 

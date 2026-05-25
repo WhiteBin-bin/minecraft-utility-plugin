@@ -1,4 +1,4 @@
-package org.WhiteBin.minecraftplugin.storage.service;
+package org.WhiteBin.minecraftplugin.storage.policy;
 
 /**
  * 개인 창고 크기 변경 정책을 정의하는 클래스입니다.

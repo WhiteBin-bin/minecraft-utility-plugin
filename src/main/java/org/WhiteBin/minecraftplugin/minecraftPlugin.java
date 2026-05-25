@@ -4,6 +4,7 @@ import org.WhiteBin.minecraftplugin.storage.command.StorageCommand;
 import org.WhiteBin.minecraftplugin.storage.listener.StorageListener;
 import org.WhiteBin.minecraftplugin.storage.repository.StorageRepository;
 import org.WhiteBin.minecraftplugin.storage.service.StorageService;
+import org.WhiteBin.minecraftplugin.storage.service.StorageServiceImpl;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -21,7 +22,7 @@ public final class minecraftPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         StorageRepository storageRepository = new StorageRepository(this);
-        StorageService storageService = new StorageService(storageRepository);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
 
         getCommand("storage").setExecutor(new StorageCommand(storageService));
         Bukkit.getPluginManager().registerEvents(new StorageListener(storageService), this);

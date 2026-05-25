@@ -1,33 +1,23 @@
 package org.WhiteBin.minecraftplugin.storage.service;
 
-import lombok.RequiredArgsConstructor;
-import org.WhiteBin.minecraftplugin.storage.repository.StorageRepository;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 
 import java.util.UUID;
 
 /**
- * 개인 창고의 열기, 저장, 확장, 축소 기능을 처리하는 서비스입니다.
+ * 개인 창고 기능에서 제공해야 하는 서비스 계약입니다.
  * <p>
- * 창고 데이터를 저장소에서 불러와 인벤토리를 생성하고,
- * 창고 크기 정책에 따라 플레이어별 창고 크기 변경을 수행합니다.
+ * 창고 열기, 저장, 크기 변경, 아이템 정렬, 창고 인벤토리 판별 기능을 정의합니다.
  */
-@RequiredArgsConstructor
-public class StorageService {
-
-    private final StorageRepository storageRepository;
-    private final StorageSizePolicy storageSizePolicy = new StorageSizePolicy();
+public interface StorageService {
 
     /**
      * 플레이어 자신의 개인 창고를 엽니다.
      *
      * @param player 창고를 열 플레이어
      */
-    public void openStorage(Player player) {
-        openStorage(player, player.getUniqueId(), player.getName());
-    }
+    void openStorage(Player player);
 
     /**
      * 특정 소유자의 개인 창고를 지정한 플레이어에게 엽니다.
@@ -39,16 +29,7 @@ public class StorageService {
      * @param ownerUuid 창고 소유자 UUID
      * @param ownerName 창고 소유자 이름
      */
-    public void openStorage(Player viewer, UUID ownerUuid, String ownerName) {
-        StorageInventoryHolder holder = new StorageInventoryHolder(ownerUuid, ownerName);
-        int storageSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
-        Inventory inventory = Bukkit.createInventory(holder, storageSize, ownerName + "의 창고");
-        holder.setInventory(inventory);
-
-        storageRepository.load(ownerUuid, inventory);
-
-        viewer.openInventory(inventory);
-    }
+    void openStorage(Player viewer, UUID ownerUuid, String ownerName);
 
     /**
      * 특정 소유자의 개인 창고 크기를 한 단계 확장합니다.
@@ -58,17 +39,7 @@ public class StorageService {
      * @param ownerUuid 창고 소유자 UUID
      * @return 확장 후 창고 크기 또는 현재 창고 크기
      */
-    public int expandStorage(UUID ownerUuid) {
-        int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
-
-        if (!storageSizePolicy.canExpand(currentSize)) {
-            return currentSize;
-        }
-
-        int expandedSize = storageSizePolicy.expand(currentSize);
-        storageRepository.saveSize(ownerUuid, expandedSize);
-        return expandedSize;
-    }
+    int expandStorage(UUID ownerUuid);
 
     /**
      * 특정 소유자의 개인 창고 크기를 한 단계 축소합니다.
@@ -78,22 +49,7 @@ public class StorageService {
      * @param ownerUuid 창고 소유자 UUID
      * @return 축소 후 창고 크기 또는 현재 창고 크기
      */
-    public int shrinkStorage(UUID ownerUuid) {
-        int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
-
-        if (!storageSizePolicy.canShrink(currentSize)) {
-            return currentSize;
-        }
-
-        int shrinkSize = storageSizePolicy.shrink(currentSize);
-
-        if (storageRepository.hasItemsInRange(ownerUuid, shrinkSize, currentSize)) {
-            return currentSize;
-        }
-
-        storageRepository.saveSize(ownerUuid, shrinkSize);
-        return shrinkSize;
-    }
+    int shrinkStorage(UUID ownerUuid);
 
     /**
      * 특정 소유자의 개인 창고가 확장 가능한 상태인지 확인합니다.
@@ -101,10 +57,7 @@ public class StorageService {
      * @param ownerUuid 창고 소유자 UUID
      * @return 최대 크기보다 작으면 {@code true}
      */
-    public boolean canExpand(UUID ownerUuid) {
-        int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
-        return storageSizePolicy.canExpand(currentSize);
-    }
+    boolean canExpand(UUID ownerUuid);
 
     /**
      * 특정 소유자의 개인 창고가 축소 가능한 상태인지 확인합니다.
@@ -112,10 +65,7 @@ public class StorageService {
      * @param ownerUuid 창고 소유자 UUID
      * @return 최소 크기보다 크면 {@code true}
      */
-    public boolean canShrink(UUID ownerUuid) {
-        int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
-        return storageSizePolicy.canShrink(currentSize);
-    }
+    boolean canShrink(UUID ownerUuid);
 
     /**
      * 특정 소유자의 개인 창고에서 축소될 슬롯 범위에 아이템이 있는지 확인합니다.
@@ -123,11 +73,16 @@ public class StorageService {
      * @param ownerUuid 창고 소유자 UUID
      * @return 축소될 슬롯 범위에 아이템이 있으면 {@code true}
      */
-    public boolean hasItemsInShrinkRange(UUID ownerUuid) {
-        int currentSize = storageRepository.loadSize(ownerUuid, StorageSizePolicy.DEFAULT_SIZE);
-        int shrinkSize = storageSizePolicy.shrink(currentSize);
-        return storageRepository.hasItemsInRange(ownerUuid, shrinkSize, currentSize);
-    }
+    boolean hasItemsInShrinkRange(UUID ownerUuid);
+
+    /**
+     * 특정 소유자의 개인 창고 아이템을 정렬하고 저장합니다.
+     * <p>
+     * 창고 크기는 유지하며 빈 슬롯을 뒤로 보내고 같은 아이템을 가능한 범위에서 합칩니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     */
+    void sortStorage(UUID ownerUuid);
 
     /**
      * 개인 창고 인벤토리 내용을 창고 소유자 UUID 기준으로 저장합니다.
@@ -135,9 +90,7 @@ public class StorageService {
      * @param player 창고를 닫은 플레이어
      * @param holder 창고 소유자 정보가 담긴 인벤토리 홀더
      */
-    public void saveStorage(Player player, StorageInventoryHolder holder) {
-        storageRepository.save(holder.getOwnerUuid(), holder.getInventory());
-    }
+    void saveStorage(Player player, StorageInventoryHolder holder);
 
     /**
      * 전달된 인벤토리가 개인 창고 인벤토리인지 확인합니다.
@@ -145,9 +98,7 @@ public class StorageService {
      * @param inventory 확인할 인벤토리
      * @return 개인 창고 홀더를 가진 인벤토리면 {@code true}
      */
-    public boolean isStorageInventory(Inventory inventory) {
-        return inventory.getHolder() instanceof StorageInventoryHolder;
-    }
+    boolean isStorageInventory(Inventory inventory);
 
     /**
      * 전달된 인벤토리에서 개인 창고 홀더를 반환합니다.
@@ -155,11 +106,5 @@ public class StorageService {
      * @param inventory 확인할 인벤토리
      * @return 개인 창고 홀더가 있으면 해당 홀더, 없으면 {@code null}
      */
-    public StorageInventoryHolder getStorageHolder(Inventory inventory) {
-        if (inventory.getHolder() instanceof StorageInventoryHolder holder) {
-            return holder;
-        }
-
-        return null;
-    }
+    StorageInventoryHolder getStorageHolder(Inventory inventory);
 }
