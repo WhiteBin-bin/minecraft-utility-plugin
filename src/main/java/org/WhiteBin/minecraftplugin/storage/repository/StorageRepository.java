@@ -112,6 +112,57 @@ public class StorageRepository {
     }
 
     /**
+     * 플레이어 UUID에 저장된 창고 아이템 배열을 불러옵니다.
+     * <p>
+     * 저장된 아이템 개수가 요청한 창고 크기보다 큰 경우 요청한 창고 크기까지만 반환합니다.
+     *
+     * @param uuid 창고 소유자 UUID
+     * @param size 불러올 창고 크기
+     * @return 저장된 창고 아이템 배열
+     */
+    public ItemStack[] loadItems(UUID uuid, int size) {
+        ItemStack[] contents = new ItemStack[size];
+        File file = getStorageFile(uuid);
+
+        if (!file.exists()) {
+            return contents;
+        }
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        List<?> items = config.getList("items");
+
+        if (items == null) {
+            return contents;
+        }
+
+        for (int i = 0; i < items.size() && i < contents.length; i++) {
+            Object item = items.get(i);
+
+            if (item instanceof ItemStack itemStack) {
+                contents[i] = itemStack;
+            }
+        }
+
+        return contents;
+    }
+
+    /**
+     * 플레이어 UUID에 해당하는 창고 아이템 배열과 창고 크기를 저장합니다.
+     *
+     * @param uuid 창고 소유자 UUID
+     * @param contents 저장할 창고 아이템 배열
+     * @param size 저장할 창고 크기
+     */
+    public void saveItems(UUID uuid, ItemStack[] contents, int size) {
+        File file = getStorageFile(uuid);
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        config.set("items", Arrays.asList(contents));
+        config.set("size", size);
+        saveConfig(uuid, file, config);
+    }
+
+    /**
      * YAML 설정 파일을 디스크에 저장합니다.
      * <p>
      * 저장 중 오류가 발생하면 플러그인 로그에 경고를 남깁니다.
