@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
  * 개인 창고 명령어 처리를 담당하는 {@link CommandExecutor} 구현체입니다.
  * <p>
  * 플레이어의 개인 창고 열기, OP의 다른 유저 창고 열기,
- * 개인 창고 확장 명령어를 처리합니다.
+ * 개인 창고 확장 및 축소 명령어를 처리합니다.
  */
 @RequiredArgsConstructor
 public class StorageCommand implements CommandExecutor {
@@ -23,7 +23,7 @@ public class StorageCommand implements CommandExecutor {
     /**
      * {@code /storage} 및 {@code /창고} 명령어 실행 요청을 처리합니다.
      * <p>
-     * 인자가 없으면 자신의 창고를 열고, {@code expand} 또는 {@code 확장} 인자가 있으면 창고 확장을 수행하며,
+     * 인자가 없으면 자신의 창고를 열고, {@code expand}, {@code shrink}, {@code 확장}, {@code 축소} 인자가 있으면 창고 크기 변경을 수행하며,
      * 그 외 인자는 본인 창고 또는 OP 전용 다른 유저 창고 열기로 처리합니다.
      *
      * @param sender 명령어를 실행한 주체
@@ -46,6 +46,11 @@ public class StorageCommand implements CommandExecutor {
 
         if (isExpandCommand(args[0])) {
             handleExpandCommand(player, args);
+            return true;
+        }
+
+        if (isShrinkCommand(args[0])) {
+            handleShrinkCommand(player, args);
             return true;
         }
 
@@ -107,6 +112,52 @@ public class StorageCommand implements CommandExecutor {
     }
 
     /**
+     * 창고 축소 명령어를 처리합니다.
+     * <p>
+     * 대상 유저 인자가 없으면 본인 창고를 축소하고,
+     * 대상 유저 인자가 있으면 본인 또는 OP 권한이 있는 경우에만 해당 유저의 창고를 축소합니다.
+     *
+     * @param player 명령어를 실행한 플레이어
+     * @param args 명령어 인자 목록
+     */
+    private void handleShrinkCommand(Player player, String[] args) {
+        OfflinePlayer target;
+        String fallbackName;
+
+        if (args.length == 1) {
+            target = player;
+            fallbackName = player.getName();
+        } else {
+            target = findTarget(player, args[1]);
+            fallbackName = args[1];
+
+            if (target == null) {
+                return;
+            }
+
+            if (!isSamePlayer(player, target) && !player.isOp()) {
+                player.sendMessage("다른 유저의 창고 축소는 OP만 할 수 있습니다.");
+                return;
+            }
+        }
+
+        String targetName = getTargetName(target, fallbackName);
+
+        if (!storageService.canShrink(target.getUniqueId())) {
+            player.sendMessage(targetName + "님의 창고는 이미 최소 크기입니다.");
+            return;
+        }
+
+        if (storageService.hasItemsInShrinkRange(target.getUniqueId())) {
+            player.sendMessage("축소될 칸에 아이템이 있어 창고를 줄일 수 없습니다.");
+            return;
+        }
+
+        int shrinkSize = storageService.shrinkStorage(target.getUniqueId());
+        player.sendMessage(targetName + "님의 창고가 " + shrinkSize + "칸으로 축소되었습니다.");
+    }
+
+    /**
      * 전달된 인자가 창고 확장 명령어인지 확인합니다.
      *
      * @param argument 확인할 명령어 인자
@@ -114,6 +165,16 @@ public class StorageCommand implements CommandExecutor {
      */
     private boolean isExpandCommand(String argument) {
         return argument.equalsIgnoreCase("expand") || argument.equals("확장");
+    }
+
+    /**
+     * 전달된 인자가 창고 축소 명령어인지 확인합니다.
+     *
+     * @param argument 확인할 명령어 인자
+     * @return {@code shrink} 또는 {@code 축소}이면 {@code true}
+     */
+    private boolean isShrinkCommand(String argument) {
+        return argument.equalsIgnoreCase("shrink") || argument.equals("축소");
     }
 
     /**
