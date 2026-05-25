@@ -23,7 +23,7 @@ public class StorageCommand implements CommandExecutor {
     /**
      * {@code /storage} 및 {@code /창고} 명령어 실행 요청을 처리합니다.
      * <p>
-     * 인자가 없으면 자신의 창고를 열고, {@code expand}, {@code shrink}, {@code 확장}, {@code 축소} 인자가 있으면 창고 크기 변경을 수행하며,
+     * 인자가 없으면 자신의 창고를 열고, {@code expand}, {@code shrink}, {@code 확장}, {@code 축소} 인자가 있으면 OP 전용 창고 크기 변경을 수행하며,
      * 그 외 인자는 본인 창고 또는 OP 전용 다른 유저 창고 열기로 처리합니다.
      *
      * @param sender 명령어를 실행한 주체
@@ -45,11 +45,21 @@ public class StorageCommand implements CommandExecutor {
         }
 
         if (isExpandCommand(args[0])) {
+            if (!player.isOp()) {
+                player.sendMessage("창고 확장은 OP만 할 수 있습니다.");
+                return true;
+            }
+
             handleExpandCommand(player, args);
             return true;
         }
 
         if (isShrinkCommand(args[0])) {
+            if (!player.isOp()) {
+                player.sendMessage("창고 축소는 OP만 할 수 있습니다.");
+                return true;
+            }
+
             handleShrinkCommand(player, args);
             return true;
         }
@@ -74,7 +84,8 @@ public class StorageCommand implements CommandExecutor {
      * 창고 확장 명령어를 처리합니다.
      * <p>
      * 대상 유저 인자가 없으면 본인 창고를 확장하고,
-     * 대상 유저 인자가 있으면 본인 또는 OP 권한이 있는 경우에만 해당 유저의 창고를 확장합니다.
+     * 대상 유저 인자가 있으면 해당 유저의 창고를 확장합니다.
+     * 이 메서드는 OP 권한 검사를 통과한 뒤 호출됩니다.
      *
      * @param player 명령어를 실행한 플레이어
      * @param args 명령어 인자 목록
@@ -91,11 +102,6 @@ public class StorageCommand implements CommandExecutor {
             fallbackName = args[1];
 
             if (target == null) {
-                return;
-            }
-
-            if (!isSamePlayer(player, target) && !player.isOp()) {
-                player.sendMessage("다른 유저의 창고 확장은 OP만 할 수 있습니다.");
                 return;
             }
         }
@@ -115,7 +121,8 @@ public class StorageCommand implements CommandExecutor {
      * 창고 축소 명령어를 처리합니다.
      * <p>
      * 대상 유저 인자가 없으면 본인 창고를 축소하고,
-     * 대상 유저 인자가 있으면 본인 또는 OP 권한이 있는 경우에만 해당 유저의 창고를 축소합니다.
+     * 대상 유저 인자가 있으면 해당 유저의 창고를 축소합니다.
+     * 이 메서드는 OP 권한 검사를 통과한 뒤 호출됩니다.
      *
      * @param player 명령어를 실행한 플레이어
      * @param args 명령어 인자 목록
@@ -132,11 +139,6 @@ public class StorageCommand implements CommandExecutor {
             fallbackName = args[1];
 
             if (target == null) {
-                return;
-            }
-
-            if (!isSamePlayer(player, target) && !player.isOp()) {
-                player.sendMessage("다른 유저의 창고 축소는 OP만 할 수 있습니다.");
                 return;
             }
         }
