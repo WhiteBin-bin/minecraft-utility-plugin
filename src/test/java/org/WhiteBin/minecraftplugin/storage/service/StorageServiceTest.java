@@ -198,6 +198,28 @@ class StorageServiceTest {
     }
 
     /**
+     * 창고 초기화 결과가 기존 창고 크기와 빈 아이템 배열로 저장되는지 검증합니다.
+     */
+    @Test
+    void clearStorageSavesEmptyItemsWithStorageSize() {
+        // given
+        UUID ownerUuid = UUID.randomUUID();
+        ItemStack[] loadedItems = new ItemStack[27];
+        loadedItems[0] = new TestItemStack("stone", 10);
+        FakeStorageRepository storageRepository = new FakeStorageRepository(27, false, loadedItems);
+        StorageService storageService = new StorageServiceImpl(storageRepository);
+
+        // when
+        storageService.clearStorage(ownerUuid);
+
+        // then
+        assertEquals(ownerUuid, storageRepository.savedItemsUuid);
+        assertEquals(27, storageRepository.savedItemsSize);
+        assertEquals(27, storageRepository.savedItems.length);
+        assertTrue(isEmpty(storageRepository.savedItems));
+    }
+
+    /**
      * {@link StorageService} 테스트에서 파일 시스템 접근 없이 창고 크기 저장을 검증하기 위한 저장소입니다.
      * <p>
      * 창고 크기 조회와 저장만 메모리 값으로 대체합니다.
@@ -330,5 +352,21 @@ class StorageServiceTest {
         @Override
         public void save(UUID uuid, Inventory inventory) {
         }
+    }
+
+    /**
+     * 전달된 아이템 배열이 모두 빈 슬롯인지 확인합니다.
+     *
+     * @param contents 확인할 아이템 배열
+     * @return 모든 슬롯이 비어 있으면 {@code true}
+     */
+    private boolean isEmpty(ItemStack[] contents) {
+        for (ItemStack content : contents) {
+            if (content != null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

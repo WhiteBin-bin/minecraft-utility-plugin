@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
  * 개인 창고 명령어 처리를 담당하는 {@link CommandExecutor} 구현체입니다.
  * <p>
  * 플레이어의 개인 창고 열기, OP의 다른 유저 창고 열기,
- * 개인 창고 확장, 축소, 정렬 명령어를 처리합니다.
+ * 개인 창고 확장, 축소, 정렬, 초기화 명령어를 처리합니다.
  */
 @RequiredArgsConstructor
 public class StorageCommand implements CommandExecutor {
@@ -23,7 +23,7 @@ public class StorageCommand implements CommandExecutor {
     /**
      * {@code /storage} 및 {@code /창고} 명령어 실행 요청을 처리합니다.
      * <p>
-     * 인자가 없으면 자신의 창고를 열고, {@code expand}, {@code shrink}, {@code sort}, {@code 확장}, {@code 축소}, {@code 정렬} 인자를 처리하며,
+     * 인자가 없으면 자신의 창고를 열고, {@code expand}, {@code shrink}, {@code sort}, {@code clear}, {@code 확장}, {@code 축소}, {@code 정렬}, {@code 초기화} 인자를 처리하며,
      * 그 외 인자는 본인 창고 또는 OP 전용 다른 유저 창고 열기로 처리합니다.
      *
      * @param sender 명령어를 실행한 주체
@@ -66,6 +66,11 @@ public class StorageCommand implements CommandExecutor {
 
         if (isSortCommand(args[0])) {
             handleSortCommand(player, args);
+            return true;
+        }
+
+        if (isClearCommand(args[0])) {
+            handleClearCommand(player, args);
             return true;
         }
 
@@ -200,6 +205,41 @@ public class StorageCommand implements CommandExecutor {
     }
 
     /**
+     * 창고 초기화 명령어를 처리합니다.
+     * <p>
+     * 대상 유저 인자가 없으면 본인 창고를 초기화하고,
+     * 대상 유저 인자가 있으면 본인 또는 OP 권한이 있는 경우에만 해당 유저의 창고를 초기화합니다.
+     *
+     * @param player 명령어를 실행한 플레이어
+     * @param args 명령어 인자 목록
+     */
+    private void handleClearCommand(Player player, String[] args) {
+        OfflinePlayer target;
+        String fallbackName;
+
+        if (args.length == 1) {
+            target = player;
+            fallbackName = player.getName();
+        } else {
+            target = findTarget(player, args[1]);
+            fallbackName = args[1];
+
+            if (target == null) {
+                return;
+            }
+
+            if (!isSamePlayer(player, target) && !player.isOp()) {
+                player.sendMessage("다른 유저의 창고 초기화는 OP만 할 수 있습니다.");
+                return;
+            }
+        }
+
+        String targetName = getTargetName(target, fallbackName);
+        storageService.clearStorage(target.getUniqueId());
+        player.sendMessage(targetName + "님의 창고를 초기화했습니다.");
+    }
+
+    /**
      * 전달된 인자가 창고 확장 명령어인지 확인합니다.
      *
      * @param argument 확인할 명령어 인자
@@ -227,6 +267,16 @@ public class StorageCommand implements CommandExecutor {
      */
     private boolean isSortCommand(String argument) {
         return argument.equalsIgnoreCase("sort") || argument.equals("정렬");
+    }
+
+    /**
+     * 전달된 인자가 창고 초기화 명령어인지 확인합니다.
+     *
+     * @param argument 확인할 명령어 인자
+     * @return {@code clear} 또는 {@code 초기화}이면 {@code true}
+     */
+    private boolean isClearCommand(String argument) {
+        return argument.equalsIgnoreCase("clear") || argument.equals("초기화");
     }
 
     /**
