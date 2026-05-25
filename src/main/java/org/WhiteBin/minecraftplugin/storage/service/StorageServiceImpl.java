@@ -1,6 +1,10 @@
 package org.WhiteBin.minecraftplugin.storage.service;
 
 import lombok.RequiredArgsConstructor;
+import org.WhiteBin.minecraftplugin.storage.inventory.StorageInventoryHolder;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogInfo;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogType;
+import org.WhiteBin.minecraftplugin.storage.model.StorageShareInfo;
 import org.WhiteBin.minecraftplugin.storage.policy.StorageSizePolicy;
 import org.WhiteBin.minecraftplugin.storage.policy.StorageSortPolicy;
 import org.WhiteBin.minecraftplugin.storage.repository.StorageRepository;
@@ -9,17 +13,21 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * 개인 창고의 열기, 저장, 확장, 축소, 정렬, 초기화, 공유 기능을 처리하는 {@link StorageService} 구현체입니다.
+ * 개인 창고의 열기, 저장, 확장, 축소, 정렬, 초기화, 공유, 로그 기능을 처리하는 {@link StorageService} 구현체입니다.
  * <p>
  * 창고 데이터를 저장소에서 불러와 인벤토리를 생성하고,
  * 창고 크기 정책, 정렬 정책, 공유 관계에 따라 플레이어별 창고 데이터를 변경합니다.
  */
 @RequiredArgsConstructor
 public class StorageServiceImpl implements StorageService {
+
+    private static final DateTimeFormatter LOG_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final StorageRepository storageRepository;
     private final StorageSizePolicy storageSizePolicy = new StorageSizePolicy();
@@ -55,6 +63,7 @@ public class StorageServiceImpl implements StorageService {
         storageRepository.load(ownerUuid, inventory);
 
         viewer.openInventory(inventory);
+        recordLog(StorageLogType.OPEN, viewer.getUniqueId(), viewer.getName(), ownerUuid, ownerName, viewer.getName() + "님이 창고를 열었습니다.");
     }
 
     /**
@@ -242,6 +251,43 @@ public class StorageServiceImpl implements StorageService {
     }
 
     /**
+     * 특정 창고 소유자의 작업 로그를 기록합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param logInfo 저장할 창고 로그 정보
+     */
+    @Override
+    public void recordLog(UUID ownerUuid, StorageLogInfo logInfo) {
+        storageRepository.saveLog(ownerUuid, logInfo);
+    }
+
+    /**
+     * 전달된 작업 정보로 창고 로그를 생성하고 기록합니다.
+     *
+     * @param type 창고 작업 타입
+     * @param actorUuid 작업을 실행한 플레이어 UUID
+     * @param actorName 작업을 실행한 플레이어 이름
+     * @param ownerUuid 작업 대상 창고 소유자 UUID
+     * @param ownerName 작업 대상 창고 소유자 이름
+     * @param detail 작업 상세 메시지
+     */
+    @Override
+    public void recordLog(StorageLogType type, UUID actorUuid, String actorName, UUID ownerUuid, String ownerName, String detail) {
+        recordLog(ownerUuid, createLog(type, actorUuid, actorName, ownerUuid, ownerName, detail));
+    }
+
+    /**
+     * 특정 창고 소유자의 작업 로그 목록을 반환합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 저장된 창고 로그 목록
+     */
+    @Override
+    public List<StorageLogInfo> getStorageLogs(UUID ownerUuid) {
+        return storageRepository.loadLogs(ownerUuid);
+    }
+
+    /**
      * 개인 창고 인벤토리 내용을 창고 소유자 UUID 기준으로 저장합니다.
      *
      * @param player 창고를 닫은 플레이어
@@ -250,6 +296,22 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public void saveStorage(Player player, StorageInventoryHolder holder) {
         storageRepository.save(holder.getOwnerUuid(), holder.getInventory());
+        recordLog(StorageLogType.SAVE, player.getUniqueId(), player.getName(), holder.getOwnerUuid(), holder.getOwnerName(), player.getName() + "님이 창고를 저장했습니다.");
+    }
+
+    /**
+     * 현재 시각과 전달된 정보를 사용하여 창고 로그 정보를 생성합니다.
+     *
+     * @param type 창고 작업 타입
+     * @param actorUuid 작업을 실행한 플레이어 UUID
+     * @param actorName 작업을 실행한 플레이어 이름
+     * @param ownerUuid 작업 대상 창고 소유자 UUID
+     * @param ownerName 작업 대상 창고 소유자 이름
+     * @param detail 작업 상세 메시지
+     * @return 생성된 창고 로그 정보
+     */
+    public StorageLogInfo createLog(StorageLogType type, UUID actorUuid, String actorName, UUID ownerUuid, String ownerName, String detail) {
+        return new StorageLogInfo(LocalDateTime.now().format(LOG_TIME_FORMATTER), type, actorUuid, actorName, ownerUuid, ownerName, detail);
     }
 
     /**

@@ -1,5 +1,9 @@
 package org.WhiteBin.minecraftplugin.storage.service;
 
+import org.WhiteBin.minecraftplugin.storage.inventory.StorageInventoryHolder;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogInfo;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogType;
+import org.WhiteBin.minecraftplugin.storage.model.StorageShareInfo;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 
@@ -9,7 +13,7 @@ import java.util.UUID;
 /**
  * 개인 창고 기능에서 제공해야 하는 서비스 계약입니다.
  * <p>
- * 창고 열기, 저장, 크기 변경, 아이템 정렬, 초기화, 공유, 창고 인벤토리 판별 기능을 정의합니다.
+ * 창고 열기, 저장, 크기 변경, 아이템 정렬, 초기화, 공유, 로그, 창고 인벤토리 판별 기능을 정의합니다.
  */
 public interface StorageService {
 
@@ -142,6 +146,34 @@ public interface StorageService {
      * @return 공유해준 창고 소유자 목록
      */
     List<StorageShareInfo> getSharedStorages(UUID targetUuid);
+
+    /**
+     * 특정 창고 소유자의 작업 로그를 기록합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param logInfo 저장할 창고 로그 정보
+     */
+    void recordLog(UUID ownerUuid, StorageLogInfo logInfo);
+
+    /**
+     * 전달된 작업 정보로 창고 로그를 생성하고 기록합니다.
+     *
+     * @param type 창고 작업 타입
+     * @param actorUuid 작업을 실행한 플레이어 UUID
+     * @param actorName 작업을 실행한 플레이어 이름
+     * @param ownerUuid 작업 대상 창고 소유자 UUID
+     * @param ownerName 작업 대상 창고 소유자 이름
+     * @param detail 작업 상세 메시지
+     */
+    void recordLog(StorageLogType type, UUID actorUuid, String actorName, UUID ownerUuid, String ownerName, String detail);
+
+    /**
+     * 특정 창고 소유자의 작업 로그 목록을 반환합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 저장된 창고 로그 목록
+     */
+    List<StorageLogInfo> getStorageLogs(UUID ownerUuid);
 
     /**
      * 개인 창고 인벤토리 내용을 창고 소유자 UUID 기준으로 저장합니다.

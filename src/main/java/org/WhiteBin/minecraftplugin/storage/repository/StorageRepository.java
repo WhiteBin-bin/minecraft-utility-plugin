@@ -1,7 +1,9 @@
 package org.WhiteBin.minecraftplugin.storage.repository;
 
 import lombok.RequiredArgsConstructor;
-import org.WhiteBin.minecraftplugin.storage.service.StorageShareInfo;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogInfo;
+import org.WhiteBin.minecraftplugin.storage.model.StorageLogType;
+import org.WhiteBin.minecraftplugin.storage.model.StorageShareInfo;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.Inventory;
@@ -13,13 +15,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * 플레이어 개인 창고 데이터를 파일에 저장하고 불러오는 저장소입니다.
  * <p>
- * 플레이어 UUID별 YAML 파일을 사용하여 창고 아이템 목록, 창고 크기, 공유 관계를 관리합니다.
+ * 플레이어 UUID별 YAML 파일을 사용하여 창고 아이템 목록, 창고 크기, 공유 관계, 작업 로그를 관리합니다.
  */
 @RequiredArgsConstructor
 public class StorageRepository {
@@ -270,6 +274,80 @@ public class StorageRepository {
         return sharedStorages.stream()
                 .sorted(Comparator.comparing(StorageShareInfo::name))
                 .toList();
+    }
+
+    /**
+     * 특정 창고 소유자의 작업 로그를 저장합니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @param logInfo 저장할 창고 로그 정보
+     */
+    public void saveLog(UUID ownerUuid, StorageLogInfo logInfo) {
+        File file = getStorageFile(ownerUuid);
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        List<Map<?, ?>> logs = new ArrayList<>(config.getMapList("logs"));
+
+        logs.add(toLogMap(logInfo));
+        config.set("logs", logs);
+        saveConfig(ownerUuid, file, config);
+    }
+
+    /**
+     * 특정 창고 소유자의 작업 로그 목록을 불러옵니다.
+     *
+     * @param ownerUuid 창고 소유자 UUID
+     * @return 저장된 창고 로그 목록
+     */
+    public List<StorageLogInfo> loadLogs(UUID ownerUuid) {
+        File file = getStorageFile(ownerUuid);
+
+        if (!file.exists()) {
+            return List.of();
+        }
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        return config.getMapList("logs")
+                .stream()
+                .map(this::toLogInfo)
+                .toList();
+    }
+
+    /**
+     * 창고 로그 정보를 YAML 저장용 Map으로 변환합니다.
+     *
+     * @param logInfo 변환할 창고 로그 정보
+     * @return YAML에 저장할 로그 Map
+     */
+    private Map<String, Object> toLogMap(StorageLogInfo logInfo) {
+        Map<String, Object> logMap = new LinkedHashMap<>();
+
+        logMap.put("createdAt", logInfo.createdAt());
+        logMap.put("type", logInfo.type().name());
+        logMap.put("actorUuid", logInfo.actorUuid().toString());
+        logMap.put("actorName", logInfo.actorName());
+        logMap.put("ownerUuid", logInfo.ownerUuid().toString());
+        logMap.put("ownerName", logInfo.ownerName());
+        logMap.put("detail", logInfo.detail());
+        return logMap;
+    }
+
+    /**
+     * YAML에서 불러온 로그 Map을 창고 로그 정보로 변환합니다.
+     *
+     * @param logMap YAML에서 불러온 로그 Map
+     * @return 변환된 창고 로그 정보
+     */
+    private StorageLogInfo toLogInfo(Map<?, ?> logMap) {
+        return new StorageLogInfo(
+                String.valueOf(logMap.get("createdAt")),
+                StorageLogType.valueOf(String.valueOf(logMap.get("type"))),
+                UUID.fromString(String.valueOf(logMap.get("actorUuid"))),
+                String.valueOf(logMap.get("actorName")),
+                UUID.fromString(String.valueOf(logMap.get("ownerUuid"))),
+                String.valueOf(logMap.get("ownerName")),
+                String.valueOf(logMap.get("detail"))
+        );
     }
 
     /**

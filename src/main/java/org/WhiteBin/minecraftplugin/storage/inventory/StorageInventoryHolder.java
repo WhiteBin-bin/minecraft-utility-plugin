@@ -1,4 +1,4 @@
-package org.WhiteBin.minecraftplugin.storage.service;
+package org.WhiteBin.minecraftplugin.storage.inventory;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

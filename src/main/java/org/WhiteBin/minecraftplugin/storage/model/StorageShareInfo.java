@@ -1,4 +1,4 @@
-package org.WhiteBin.minecraftplugin.storage.service;
+package org.WhiteBin.minecraftplugin.storage.model;
 
 import java.util.UUID;
 

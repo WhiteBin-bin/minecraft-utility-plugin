@@ -1,7 +1,7 @@
 package org.WhiteBin.minecraftplugin.storage.listener;
 
 import lombok.RequiredArgsConstructor;
-import org.WhiteBin.minecraftplugin.storage.service.StorageInventoryHolder;
+import org.WhiteBin.minecraftplugin.storage.inventory.StorageInventoryHolder;
 import org.WhiteBin.minecraftplugin.storage.service.StorageService;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
