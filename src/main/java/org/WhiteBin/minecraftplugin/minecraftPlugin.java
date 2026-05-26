@@ -1,5 +1,9 @@
 package org.WhiteBin.minecraftplugin;
 
+import org.WhiteBin.minecraftplugin.economy.listener.EconomyListener;
+import org.WhiteBin.minecraftplugin.economy.repository.EconomyRepository;
+import org.WhiteBin.minecraftplugin.economy.service.EconomyService;
+import org.WhiteBin.minecraftplugin.economy.service.EconomyServiceImpl;
 import org.WhiteBin.minecraftplugin.storage.command.StorageCommand;
 import org.WhiteBin.minecraftplugin.storage.listener.StorageListener;
 import org.WhiteBin.minecraftplugin.storage.repository.StorageRepository;
@@ -24,6 +28,8 @@ public final class minecraftPlugin extends JavaPlugin {
     public void onEnable() {
         StorageRepository storageRepository = new StorageRepository(this);
         StorageService storageService = new StorageServiceImpl(storageRepository);
+        EconomyRepository economyRepository = new EconomyRepository(this);
+        EconomyService economyService = new EconomyServiceImpl(economyRepository);
         StorageCommand storageCommandExecutor = new StorageCommand(storageService);
         PluginCommand storageCommand = getCommand("storage");
         PluginCommand koreanStorageCommand = getCommand("창고");
@@ -33,6 +39,7 @@ public final class minecraftPlugin extends JavaPlugin {
         koreanStorageCommand.setExecutor(storageCommandExecutor);
         koreanStorageCommand.setTabCompleter(storageCommandExecutor);
         Bukkit.getPluginManager().registerEvents(new StorageListener(storageService), this);
+        Bukkit.getPluginManager().registerEvents(new EconomyListener(economyService), this);
 
         getLogger().info("창고 플러그인이 켜졌습니다.");
     }
