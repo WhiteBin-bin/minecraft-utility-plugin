@@ -39,3 +39,6 @@ whitelist.json
 *.bak
 .DS_Store
 Thumbs.db
+
+.codex
+.agents

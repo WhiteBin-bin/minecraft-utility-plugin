@@ -10,6 +10,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -22,9 +23,10 @@ import java.util.Locale;
  * 개인 창고 확장, 축소, 정렬, 초기화, 공유, 로그 명령어를 처리합니다.
  */
 @RequiredArgsConstructor
-public class StorageCommand implements CommandExecutor {
+public class StorageCommand implements CommandExecutor, TabCompleter {
 
     private final StorageService storageService;
+    private final StorageTabCompletion storageTabCompletion = new StorageTabCompletion();
 
     /**
      * {@code /storage} 및 {@code /창고} 명령어 실행 요청을 처리합니다.
@@ -52,6 +54,24 @@ public class StorageCommand implements CommandExecutor {
 
         handleSubCommand(player, args);
         return true;
+    }
+
+    /**
+     * {@code /storage} 및 {@code /창고} 명령어의 자동완성 후보를 반환합니다.
+     *
+     * @param sender 명령어를 입력 중인 주체
+     * @param command 자동완성 중인 명령어 객체
+     * @param label 사용자가 입력한 명령어 라벨
+     * @param args 현재 입력된 명령어 인자 목록
+     * @return 자동완성 후보 목록
+     */
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+        List<String> onlinePlayerNames = Bukkit.getOnlinePlayers().stream()
+                .map(Player::getName)
+                .toList();
+
+        return storageTabCompletion.complete(sender.isOp(), label.equalsIgnoreCase("창고"), args, onlinePlayerNames);
     }
 
     /**
