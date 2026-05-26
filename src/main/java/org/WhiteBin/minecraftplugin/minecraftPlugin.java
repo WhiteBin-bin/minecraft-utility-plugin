@@ -6,6 +6,7 @@ import org.WhiteBin.minecraftplugin.storage.repository.StorageRepository;
 import org.WhiteBin.minecraftplugin.storage.service.StorageService;
 import org.WhiteBin.minecraftplugin.storage.service.StorageServiceImpl;
 import org.bukkit.Bukkit;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -23,8 +24,11 @@ public final class minecraftPlugin extends JavaPlugin {
     public void onEnable() {
         StorageRepository storageRepository = new StorageRepository(this);
         StorageService storageService = new StorageServiceImpl(storageRepository);
+        StorageCommand storageCommandExecutor = new StorageCommand(storageService);
+        PluginCommand storageCommand = getCommand("storage");
 
-        getCommand("storage").setExecutor(new StorageCommand(storageService));
+        storageCommand.setExecutor(storageCommandExecutor);
+        storageCommand.setTabCompleter(storageCommandExecutor);
         Bukkit.getPluginManager().registerEvents(new StorageListener(storageService), this);
 
         getLogger().info("창고 플러그인이 켜졌습니다.");
