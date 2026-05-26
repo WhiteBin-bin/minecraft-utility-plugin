@@ -26,9 +26,12 @@ public final class minecraftPlugin extends JavaPlugin {
         StorageService storageService = new StorageServiceImpl(storageRepository);
         StorageCommand storageCommandExecutor = new StorageCommand(storageService);
         PluginCommand storageCommand = getCommand("storage");
+        PluginCommand koreanStorageCommand = getCommand("창고");
 
         storageCommand.setExecutor(storageCommandExecutor);
         storageCommand.setTabCompleter(storageCommandExecutor);
+        koreanStorageCommand.setExecutor(storageCommandExecutor);
+        koreanStorageCommand.setTabCompleter(storageCommandExecutor);
         Bukkit.getPluginManager().registerEvents(new StorageListener(storageService), this);
 
         getLogger().info("창고 플러그인이 켜졌습니다.");

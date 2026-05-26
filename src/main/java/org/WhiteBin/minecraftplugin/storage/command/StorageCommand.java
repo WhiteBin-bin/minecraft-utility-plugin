@@ -1,6 +1,7 @@
 package org.WhiteBin.minecraftplugin.storage.command;
 
 import lombok.RequiredArgsConstructor;
+import org.WhiteBin.minecraftplugin.storage.inventory.StorageGuiFactory;
 import org.WhiteBin.minecraftplugin.storage.model.StorageLogInfo;
 import org.WhiteBin.minecraftplugin.storage.model.StorageLogType;
 import org.WhiteBin.minecraftplugin.storage.service.StorageService;
@@ -27,6 +28,7 @@ public class StorageCommand implements CommandExecutor, TabCompleter {
 
     private final StorageService storageService;
     private final StorageTabCompletion storageTabCompletion = new StorageTabCompletion();
+    private final StorageGuiFactory storageGuiFactory = new StorageGuiFactory();
 
     /**
      * {@code /storage} 및 {@code /창고} 명령어 실행 요청을 처리합니다.
@@ -71,7 +73,17 @@ public class StorageCommand implements CommandExecutor, TabCompleter {
                 .map(Player::getName)
                 .toList();
 
-        return storageTabCompletion.complete(sender.isOp(), label.equalsIgnoreCase("창고"), args, onlinePlayerNames);
+        return storageTabCompletion.complete(sender.isOp(), isKoreanStorageLabel(label), args, onlinePlayerNames);
+    }
+
+    /**
+     * 명령어 라벨이 한글 창고 명령어인지 확인합니다.
+     *
+     * @param label 사용자가 입력한 명령어 라벨
+     * @return 한글 창고 명령어이면 {@code true}
+     */
+    private boolean isKoreanStorageLabel(String label) {
+        return label.equalsIgnoreCase("창고") || label.toLowerCase(Locale.ROOT).endsWith(":창고");
     }
 
     /**
@@ -358,14 +370,7 @@ public class StorageCommand implements CommandExecutor, TabCompleter {
      */
     private void handleMySharesCommand(Player player) {
         List<StorageShareInfo> sharedUsers = storageService.getSharedUsers(player.getUniqueId());
-
-        if (sharedUsers.isEmpty()) {
-            player.sendMessage("공유 중인 유저가 없습니다.");
-            return;
-        }
-
-        player.sendMessage("[내가 공유 중인 창고]");
-        sharedUsers.forEach(sharedUser -> player.sendMessage("- " + sharedUser.name()));
+        player.openInventory(storageGuiFactory.createSharesInventory(player.getUniqueId(), player.getName(), sharedUsers, 0, "ALL"));
     }
 
     /**
@@ -375,14 +380,7 @@ public class StorageCommand implements CommandExecutor, TabCompleter {
      */
     private void handleSharedStoragesCommand(Player player) {
         List<StorageShareInfo> sharedStorages = storageService.getSharedStorages(player.getUniqueId());
-
-        if (sharedStorages.isEmpty()) {
-            player.sendMessage("공유받은 창고가 없습니다.");
-            return;
-        }
-
-        player.sendMessage("[내가 공유받은 창고]");
-        sharedStorages.forEach(sharedStorage -> player.sendMessage("- " + sharedStorage.name() + "의 창고"));
+        player.openInventory(storageGuiFactory.createSharedStoragesInventory(player.getUniqueId(), player.getName(), sharedStorages, 0, "ALL"));
     }
 
     /**
@@ -411,15 +409,7 @@ public class StorageCommand implements CommandExecutor, TabCompleter {
 
         String targetName = getTargetName(target, args[1]);
         List<StorageLogInfo> logs = storageService.getStorageLogs(target.getUniqueId());
-
-        if (logs.isEmpty()) {
-            player.sendMessage(targetName + "님의 창고 로그가 없습니다.");
-            return;
-        }
-
-        player.sendMessage("[" + targetName + "님의 창고 로그]");
-        logs.subList(Math.max(0, logs.size() - 10), logs.size())
-                .forEach(log -> player.sendMessage("- [" + log.createdAt() + "] " + log.type().name() + " " + log.detail()));
+        player.openInventory(storageGuiFactory.createLogsInventory(target.getUniqueId(), targetName, logs, 0, "ALL"));
     }
 
     /**
