@@ -1,5 +1,6 @@
 package org.WhiteBin.minecraftplugin;
 
+import org.WhiteBin.minecraftplugin.economy.command.EconomyCommand;
 import org.WhiteBin.minecraftplugin.economy.listener.EconomyListener;
 import org.WhiteBin.minecraftplugin.economy.repository.EconomyRepository;
 import org.WhiteBin.minecraftplugin.economy.service.EconomyService;
@@ -31,13 +32,20 @@ public final class minecraftPlugin extends JavaPlugin {
         EconomyRepository economyRepository = new EconomyRepository(this);
         EconomyService economyService = new EconomyServiceImpl(economyRepository);
         StorageCommand storageCommandExecutor = new StorageCommand(storageService);
+        EconomyCommand economyCommandExecutor = new EconomyCommand(economyService);
         PluginCommand storageCommand = getCommand("storage");
         PluginCommand koreanStorageCommand = getCommand("창고");
+        PluginCommand moneyCommand = getCommand("money");
+        PluginCommand koreanMoneyCommand = getCommand("돈");
 
         storageCommand.setExecutor(storageCommandExecutor);
         storageCommand.setTabCompleter(storageCommandExecutor);
         koreanStorageCommand.setExecutor(storageCommandExecutor);
         koreanStorageCommand.setTabCompleter(storageCommandExecutor);
+        moneyCommand.setExecutor(economyCommandExecutor);
+        moneyCommand.setTabCompleter(economyCommandExecutor);
+        koreanMoneyCommand.setExecutor(economyCommandExecutor);
+        koreanMoneyCommand.setTabCompleter(economyCommandExecutor);
         Bukkit.getPluginManager().registerEvents(new StorageListener(storageService), this);
         Bukkit.getPluginManager().registerEvents(new EconomyListener(economyService), this);
 
