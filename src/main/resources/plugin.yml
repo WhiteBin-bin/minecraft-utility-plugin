@@ -9,5 +9,6 @@ commands:
   storage:
     description: 개인 창고를 열거나 크기 변경, 정렬, 초기화, 공유, 로그 조회를 합니다. OP는 다른 유저 창고도 관리할 수 있습니다.
     usage: /storage [player|expand [player]|shrink [player]|sort [player]|clear [player]|share <player>|unshare <player>|shares|shared|logs <player>]
-    aliases:
-      - 창고
+  창고:
+    description: 개인 창고를 열거나 크기 변경, 정렬, 초기화, 공유, 로그 조회를 합니다. OP는 다른 유저 창고도 관리할 수 있습니다.
+    usage: /창고 [player|확장 [player]|축소 [player]|정렬 [player]|초기화 [player]|공유 <player>|공유해제 <player>|공유목록|공유받은목록|로그 <player>]
