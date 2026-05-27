@@ -52,4 +52,51 @@ public class EconomyServiceImpl implements EconomyService {
     public void setBalance(UUID uuid, String name, BigDecimal balance) {
         economyRepository.saveAccount(new EconomyAccount(uuid, name, balance));
     }
+
+    /**
+     * 플레이어 잔액을 증가시킵니다.
+     *
+     * @param uuid 계좌 소유자 UUID
+     * @param name 계좌 소유자 이름
+     * @param amount 증가시킬 금액
+     * @return 증가 후 잔액
+     */
+    @Override
+    public BigDecimal deposit(UUID uuid, String name, BigDecimal amount) {
+        BigDecimal balance = getBalance(uuid, name).add(amount);
+
+        setBalance(uuid, name, balance);
+        return balance;
+    }
+
+    /**
+     * 플레이어 잔액을 감소시킵니다.
+     *
+     * @param uuid 계좌 소유자 UUID
+     * @param name 계좌 소유자 이름
+     * @param amount 감소시킬 금액
+     * @return 감소에 성공했으면 {@code true}
+     */
+    @Override
+    public boolean withdraw(UUID uuid, String name, BigDecimal amount) {
+        if (!hasEnough(uuid, name, amount)) {
+            return false;
+        }
+
+        setBalance(uuid, name, getBalance(uuid, name).subtract(amount));
+        return true;
+    }
+
+    /**
+     * 플레이어 잔액이 지정한 금액 이상인지 확인합니다.
+     *
+     * @param uuid 계좌 소유자 UUID
+     * @param name 계좌 소유자 이름
+     * @param amount 확인할 금액
+     * @return 잔액이 충분하면 {@code true}
+     */
+    @Override
+    public boolean hasEnough(UUID uuid, String name, BigDecimal amount) {
+        return getBalance(uuid, name).compareTo(amount) >= 0;
+    }
 }

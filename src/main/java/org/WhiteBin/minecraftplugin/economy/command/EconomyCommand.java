@@ -1,6 +1,7 @@
 package org.WhiteBin.minecraftplugin.economy.command;
 
 import lombok.RequiredArgsConstructor;
+import org.WhiteBin.minecraftplugin.economy.sidebar.EconomySidebar;
 import org.WhiteBin.minecraftplugin.economy.service.EconomyService;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -11,6 +12,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.List;
 
 /**
@@ -21,6 +23,7 @@ public class EconomyCommand implements CommandExecutor, TabCompleter {
 
     private final EconomyService economyService;
     private final EconomyTabCompletion economyTabCompletion = new EconomyTabCompletion();
+    private final EconomySidebar economySidebar = new EconomySidebar();
 
     /**
      * {@code /money} 및 {@code /돈} 명령어 실행 요청을 처리합니다.
@@ -43,6 +46,11 @@ public class EconomyCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (isManagementCommand(args[0])) {
+            handleManagementCommand(player, args);
+            return true;
+        }
+
         handleTargetBalanceCommand(player, args[0]);
         return true;
     }
@@ -62,7 +70,68 @@ public class EconomyCommand implements CommandExecutor, TabCompleter {
                 .map(Player::getName)
                 .toList();
 
-        return economyTabCompletion.complete(args, onlinePlayerNames);
+        return economyTabCompletion.complete(sender.isOp(), label.equalsIgnoreCase("돈"), args, onlinePlayerNames);
+    }
+
+    private void handleManagementCommand(Player player, String[] args) {
+        if (!player.isOp()) {
+            player.sendMessage("잔액 관리는 OP만 할 수 있습니다.");
+            return;
+        }
+
+        if (args.length < 3) {
+            player.sendMessage("사용법: /money " + args[0] + " <player> <amount>");
+            return;
+        }
+
+        OfflinePlayer target = findTarget(player, args[1]);
+
+        if (target == null) {
+            return;
+        }
+
+        BigDecimal amount = parsePositiveAmount(player, args[2]);
+
+        if (amount == null) {
+            return;
+        }
+
+        String targetName = getTargetName(target, args[1]);
+
+        switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "give", "지급" -> handleGiveCommand(player, target, targetName, amount);
+            case "take", "차감" -> handleTakeCommand(player, target, targetName, amount);
+            case "set", "설정" -> handleSetCommand(player, target, targetName, amount);
+            default -> {
+            }
+        }
+    }
+
+    private void handleGiveCommand(Player player, OfflinePlayer target, String targetName, BigDecimal amount) {
+        BigDecimal balance = economyService.deposit(target.getUniqueId(), targetName, amount);
+
+        updateTargetSidebar(target, balance);
+        player.sendMessage(targetName + "님에게 " + formatBalance(amount) + "원을 지급했습니다. 현재 돈: " + formatBalance(balance));
+    }
+
+    private void handleTakeCommand(Player player, OfflinePlayer target, String targetName, BigDecimal amount) {
+        boolean withdrawn = economyService.withdraw(target.getUniqueId(), targetName, amount);
+
+        if (!withdrawn) {
+            player.sendMessage(targetName + "님의 돈이 부족합니다.");
+            return;
+        }
+
+        BigDecimal balance = economyService.getBalance(target.getUniqueId(), targetName);
+
+        updateTargetSidebar(target, balance);
+        player.sendMessage(targetName + "님에게서 " + formatBalance(amount) + "원을 차감했습니다. 현재 돈: " + formatBalance(balance));
+    }
+
+    private void handleSetCommand(Player player, OfflinePlayer target, String targetName, BigDecimal amount) {
+        economyService.setBalance(target.getUniqueId(), targetName, amount);
+        updateTargetSidebar(target, amount);
+        player.sendMessage(targetName + "님의 돈을 " + formatBalance(amount) + "원으로 설정했습니다.");
     }
 
     private void handleTargetBalanceCommand(Player player, String targetArgument) {
@@ -81,14 +150,47 @@ public class EconomyCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendBalanceMessage(Player viewer, OfflinePlayer target, String fallbackName) {
-        String targetName = target.getName() == null ? fallbackName : target.getName();
+        String targetName = getTargetName(target, fallbackName);
         BigDecimal balance = economyService.getBalance(target.getUniqueId(), targetName);
 
         viewer.sendMessage(targetName + "님의 돈: " + formatBalance(balance));
     }
 
+    private void updateTargetSidebar(OfflinePlayer target, BigDecimal balance) {
+        if (target instanceof Player onlineTarget) {
+            economySidebar.showBalance(onlineTarget, balance);
+        }
+    }
+
+    private BigDecimal parsePositiveAmount(Player player, String amountArgument) {
+        try {
+            BigDecimal amount = new BigDecimal(amountArgument);
+
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                player.sendMessage("금액은 0보다 커야 합니다.");
+                return null;
+            }
+
+            return amount;
+        } catch (NumberFormatException e) {
+            player.sendMessage("금액은 숫자로 입력해야 합니다.");
+            return null;
+        }
+    }
+
     private String formatBalance(BigDecimal balance) {
         return balance.stripTrailingZeros().toPlainString();
+    }
+
+    private String getTargetName(OfflinePlayer target, String fallbackName) {
+        return target.getName() == null ? fallbackName : target.getName();
+    }
+
+    private boolean isManagementCommand(String command) {
+        return switch (command.toLowerCase(Locale.ROOT)) {
+            case "give", "take", "set", "지급", "차감", "설정" -> true;
+            default -> false;
+        };
     }
 
     private OfflinePlayer findTarget(Player player, String targetName) {
