@@ -12,6 +12,8 @@ class EconomyTabCompletion {
 
     private static final List<String> ENGLISH_OP_COMMANDS = List.of("give", "take", "set");
     private static final List<String> KOREAN_OP_COMMANDS = List.of("지급", "차감", "설정");
+    private static final List<String> ENGLISH_USER_COMMANDS = List.of("pay");
+    private static final List<String> KOREAN_USER_COMMANDS = List.of("보내기");
 
     /**
      * 입력 중인 명령어 인자에 맞는 자동완성 후보를 반환합니다.
@@ -31,7 +33,7 @@ class EconomyTabCompletion {
             return filterByPrefix(topLevelCandidates(op, koreanCommand, onlinePlayerNames), args[0]);
         }
 
-        if (args.length == 2 && isOpCommand(args[0])) {
+        if (args.length == 2 && isPlayerArgumentCommand(args[0])) {
             return filterByPrefix(onlinePlayerNames, args[1]);
         }
 
@@ -41,6 +43,8 @@ class EconomyTabCompletion {
     private List<String> topLevelCandidates(boolean op, boolean koreanCommand, Collection<String> onlinePlayerNames) {
         List<String> candidates = new ArrayList<>();
 
+        candidates.addAll(koreanCommand ? KOREAN_USER_COMMANDS : ENGLISH_USER_COMMANDS);
+
         if (op) {
             candidates.addAll(koreanCommand ? KOREAN_OP_COMMANDS : ENGLISH_OP_COMMANDS);
         }
@@ -49,9 +53,12 @@ class EconomyTabCompletion {
         return candidates;
     }
 
-    private boolean isOpCommand(String command) {
+    private boolean isPlayerArgumentCommand(String command) {
         String normalizedCommand = command.toLowerCase(Locale.ROOT);
-        return ENGLISH_OP_COMMANDS.contains(normalizedCommand) || KOREAN_OP_COMMANDS.contains(command);
+        return ENGLISH_USER_COMMANDS.contains(normalizedCommand)
+                || KOREAN_USER_COMMANDS.contains(command)
+                || ENGLISH_OP_COMMANDS.contains(normalizedCommand)
+                || KOREAN_OP_COMMANDS.contains(command);
     }
 
     private List<String> filterByPrefix(Collection<String> candidates, String prefix) {

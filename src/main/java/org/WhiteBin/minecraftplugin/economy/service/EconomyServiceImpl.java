@@ -88,6 +88,27 @@ public class EconomyServiceImpl implements EconomyService {
     }
 
     /**
+     * 보내는 플레이어 잔액을 차감하고 받는 플레이어 잔액을 증가시킵니다.
+     *
+     * @param fromUuid 보내는 플레이어 UUID
+     * @param fromName 보내는 플레이어 이름
+     * @param toUuid 받는 플레이어 UUID
+     * @param toName 받는 플레이어 이름
+     * @param amount 송금할 금액
+     * @return 송금에 성공했으면 {@code true}
+     */
+    @Override
+    public boolean transfer(UUID fromUuid, String fromName, UUID toUuid, String toName, BigDecimal amount) {
+        if (!hasEnough(fromUuid, fromName, amount)) {
+            return false;
+        }
+
+        setBalance(fromUuid, fromName, getBalance(fromUuid, fromName).subtract(amount));
+        deposit(toUuid, toName, amount);
+        return true;
+    }
+
+    /**
      * 플레이어 잔액이 지정한 금액 이상인지 확인합니다.
      *
      * @param uuid 계좌 소유자 UUID

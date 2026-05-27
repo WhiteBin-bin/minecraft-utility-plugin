@@ -5,6 +5,8 @@ import org.WhiteBin.minecraftplugin.economy.repository.EconomyRepository;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -148,12 +150,57 @@ class EconomyServiceTest {
     }
 
     /**
+     * 송금 시 보내는 플레이어 잔액을 차감하고 받는 플레이어 잔액을 증가시키는지 검증합니다.
+     */
+    @Test
+    void transferSubtractsSenderBalanceAndAddsReceiverBalance() {
+        // given
+        UUID senderUuid = UUID.randomUUID();
+        UUID receiverUuid = UUID.randomUUID();
+        FakeEconomyRepository economyRepository = new FakeEconomyRepository(null);
+        economyRepository.accounts.put(senderUuid, new EconomyAccount(senderUuid, "sender", new BigDecimal("1000")));
+        economyRepository.accounts.put(receiverUuid, new EconomyAccount(receiverUuid, "receiver", new BigDecimal("100")));
+        EconomyService economyService = new EconomyServiceImpl(economyRepository);
+
+        // when
+        boolean transferred = economyService.transfer(senderUuid, "sender", receiverUuid, "receiver", new BigDecimal("300"));
+
+        // then
+        assertTrue(transferred);
+        assertEquals(new BigDecimal("700"), economyRepository.accounts.get(senderUuid).balance());
+        assertEquals(new BigDecimal("400"), economyRepository.accounts.get(receiverUuid).balance());
+    }
+
+    /**
+     * 보내는 플레이어 잔액이 부족할 때 송금하지 않는지 검증합니다.
+     */
+    @Test
+    void transferDoesNotChangeBalancesWhenSenderBalanceIsNotEnough() {
+        // given
+        UUID senderUuid = UUID.randomUUID();
+        UUID receiverUuid = UUID.randomUUID();
+        FakeEconomyRepository economyRepository = new FakeEconomyRepository(null);
+        economyRepository.accounts.put(senderUuid, new EconomyAccount(senderUuid, "sender", new BigDecimal("100")));
+        economyRepository.accounts.put(receiverUuid, new EconomyAccount(receiverUuid, "receiver", new BigDecimal("100")));
+        EconomyService economyService = new EconomyServiceImpl(economyRepository);
+
+        // when
+        boolean transferred = economyService.transfer(senderUuid, "sender", receiverUuid, "receiver", new BigDecimal("300"));
+
+        // then
+        assertFalse(transferred);
+        assertEquals(new BigDecimal("100"), economyRepository.accounts.get(senderUuid).balance());
+        assertEquals(new BigDecimal("100"), economyRepository.accounts.get(receiverUuid).balance());
+    }
+
+    /**
      * {@link EconomyService} 테스트에서 파일 시스템 접근 없이 계좌 저장을 검증하기 위한 저장소입니다.
      */
     private static class FakeEconomyRepository extends EconomyRepository {
 
         private final EconomyAccount loadedAccount;
         private EconomyAccount savedAccount;
+        private final Map<UUID, EconomyAccount> accounts = new HashMap<>();
 
         /**
          * 테스트에서 불러올 계좌 정보를 지정하여 저장소를 생성합니다.
@@ -163,6 +210,10 @@ class EconomyServiceTest {
         private FakeEconomyRepository(EconomyAccount loadedAccount) {
             super(null);
             this.loadedAccount = loadedAccount;
+
+            if (loadedAccount != null) {
+                accounts.put(loadedAccount.uuid(), loadedAccount);
+            }
         }
 
         /**
@@ -175,6 +226,10 @@ class EconomyServiceTest {
          */
         @Override
         public EconomyAccount loadAccount(UUID uuid, String fallbackName, BigDecimal defaultBalance) {
+            if (accounts.containsKey(uuid)) {
+                return accounts.get(uuid);
+            }
+
             if (loadedAccount == null) {
                 return new EconomyAccount(uuid, fallbackName, defaultBalance);
             }
@@ -190,6 +245,7 @@ class EconomyServiceTest {
         @Override
         public void saveAccount(EconomyAccount account) {
             this.savedAccount = account;
+            accounts.put(account.uuid(), account);
         }
     }
 }

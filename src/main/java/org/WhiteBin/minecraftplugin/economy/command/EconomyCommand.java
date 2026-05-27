@@ -46,6 +46,11 @@ public class EconomyCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (isTransferCommand(args[0])) {
+            handleTransferCommand(player, args);
+            return true;
+        }
+
         if (isManagementCommand(args[0])) {
             handleManagementCommand(player, args);
             return true;
@@ -71,6 +76,49 @@ public class EconomyCommand implements CommandExecutor, TabCompleter {
                 .toList();
 
         return economyTabCompletion.complete(sender.isOp(), label.equalsIgnoreCase("돈"), args, onlinePlayerNames);
+    }
+
+    private void handleTransferCommand(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage("사용법: /money " + args[0] + " <player> <amount>");
+            return;
+        }
+
+        OfflinePlayer target = findTarget(player, args[1]);
+
+        if (target == null) {
+            return;
+        }
+
+        if (player.getUniqueId().equals(target.getUniqueId())) {
+            player.sendMessage("자기 자신에게는 송금할 수 없습니다.");
+            return;
+        }
+
+        BigDecimal amount = parsePositiveAmount(player, args[2]);
+
+        if (amount == null) {
+            return;
+        }
+
+        String targetName = getTargetName(target, args[1]);
+        boolean transferred = economyService.transfer(player.getUniqueId(), player.getName(), target.getUniqueId(), targetName, amount);
+
+        if (!transferred) {
+            player.sendMessage("돈이 부족합니다.");
+            return;
+        }
+
+        BigDecimal senderBalance = economyService.getBalance(player.getUniqueId(), player.getName());
+        BigDecimal targetBalance = economyService.getBalance(target.getUniqueId(), targetName);
+
+        economySidebar.showBalance(player, senderBalance);
+        updateTargetSidebar(target, targetBalance);
+        player.sendMessage(targetName + "님에게 " + formatBalance(amount) + "원을 보냈습니다. 현재 돈: " + formatBalance(senderBalance));
+
+        if (target instanceof Player onlineTarget) {
+            onlineTarget.sendMessage(player.getName() + "님에게서 " + formatBalance(amount) + "원을 받았습니다. 현재 돈: " + formatBalance(targetBalance));
+        }
     }
 
     private void handleManagementCommand(Player player, String[] args) {
@@ -189,6 +237,13 @@ public class EconomyCommand implements CommandExecutor, TabCompleter {
     private boolean isManagementCommand(String command) {
         return switch (command.toLowerCase(Locale.ROOT)) {
             case "give", "take", "set", "지급", "차감", "설정" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isTransferCommand(String command) {
+        return switch (command.toLowerCase(Locale.ROOT)) {
+            case "pay", "보내기" -> true;
             default -> false;
         };
     }
