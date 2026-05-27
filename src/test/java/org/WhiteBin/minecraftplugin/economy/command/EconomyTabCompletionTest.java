@@ -26,7 +26,7 @@ class EconomyTabCompletionTest {
         List<String> completions = economyTabCompletion.complete(false, false, new String[]{""}, onlinePlayerNames);
 
         // then
-        assertEquals(onlinePlayerNames, completions);
+        assertEquals(List.of("pay", "WhiteBin", "Steve"), completions);
     }
 
     /**
@@ -71,7 +71,7 @@ class EconomyTabCompletionTest {
         List<String> completions = economyTabCompletion.complete(true, false, new String[]{""}, onlinePlayerNames);
 
         // then
-        assertEquals(List.of("give", "take", "set", "WhiteBin"), completions);
+        assertEquals(List.of("pay", "give", "take", "set", "WhiteBin"), completions);
     }
 
     /**
@@ -86,7 +86,7 @@ class EconomyTabCompletionTest {
         List<String> completions = economyTabCompletion.complete(true, true, new String[]{""}, onlinePlayerNames);
 
         // then
-        assertEquals(List.of("지급", "차감", "설정", "WhiteBin"), completions);
+        assertEquals(List.of("보내기", "지급", "차감", "설정", "WhiteBin"), completions);
     }
 
     /**
@@ -99,6 +99,21 @@ class EconomyTabCompletionTest {
 
         // when
         List<String> completions = economyTabCompletion.complete(true, false, new String[]{"give", "S"}, onlinePlayerNames);
+
+        // then
+        assertEquals(List.of("Steve"), completions);
+    }
+
+    /**
+     * 송금 하위 명령어의 플레이어 인자 위치에서 플레이어 이름을 반환하는지 검증합니다.
+     */
+    @Test
+    void completeReturnsPlayerNamesForTransferCommand() {
+        // given
+        List<String> onlinePlayerNames = List.of("WhiteBin", "Steve");
+
+        // when
+        List<String> completions = economyTabCompletion.complete(false, false, new String[]{"pay", "S"}, onlinePlayerNames);
 
         // then
         assertEquals(List.of("Steve"), completions);

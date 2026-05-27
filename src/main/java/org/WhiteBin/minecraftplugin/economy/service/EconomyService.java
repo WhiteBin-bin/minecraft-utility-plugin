@@ -58,6 +58,18 @@ public interface EconomyService {
     boolean withdraw(UUID uuid, String name, BigDecimal amount);
 
     /**
+     * 보내는 플레이어 잔액을 차감하고 받는 플레이어 잔액을 증가시킵니다.
+     *
+     * @param fromUuid 보내는 플레이어 UUID
+     * @param fromName 보내는 플레이어 이름
+     * @param toUuid 받는 플레이어 UUID
+     * @param toName 받는 플레이어 이름
+     * @param amount 송금할 금액
+     * @return 송금에 성공했으면 {@code true}
+     */
+    boolean transfer(UUID fromUuid, String fromName, UUID toUuid, String toName, BigDecimal amount);
+
+    /**
      * 플레이어 잔액이 지정한 금액 이상인지 확인합니다.
      *
      * @param uuid 계좌 소유자 UUID
