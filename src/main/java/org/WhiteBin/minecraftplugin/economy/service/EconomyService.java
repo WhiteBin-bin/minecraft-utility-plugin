@@ -36,4 +36,34 @@ public interface EconomyService {
      * @param balance 저장할 잔액
      */
     void setBalance(UUID uuid, String name, BigDecimal balance);
+
+    /**
+     * 플레이어 잔액을 증가시킵니다.
+     *
+     * @param uuid 계좌 소유자 UUID
+     * @param name 계좌 소유자 이름
+     * @param amount 증가시킬 금액
+     * @return 증가 후 잔액
+     */
+    BigDecimal deposit(UUID uuid, String name, BigDecimal amount);
+
+    /**
+     * 플레이어 잔액을 감소시킵니다.
+     *
+     * @param uuid 계좌 소유자 UUID
+     * @param name 계좌 소유자 이름
+     * @param amount 감소시킬 금액
+     * @return 감소에 성공했으면 {@code true}
+     */
+    boolean withdraw(UUID uuid, String name, BigDecimal amount);
+
+    /**
+     * 플레이어 잔액이 지정한 금액 이상인지 확인합니다.
+     *
+     * @param uuid 계좌 소유자 UUID
+     * @param name 계좌 소유자 이름
+     * @param amount 확인할 금액
+     * @return 잔액이 충분하면 {@code true}
+     */
+    boolean hasEnough(UUID uuid, String name, BigDecimal amount);
 }

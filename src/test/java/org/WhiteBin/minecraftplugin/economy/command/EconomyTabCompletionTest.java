@@ -23,7 +23,7 @@ class EconomyTabCompletionTest {
         List<String> onlinePlayerNames = List.of("WhiteBin", "Steve");
 
         // when
-        List<String> completions = economyTabCompletion.complete(new String[]{""}, onlinePlayerNames);
+        List<String> completions = economyTabCompletion.complete(false, false, new String[]{""}, onlinePlayerNames);
 
         // then
         assertEquals(onlinePlayerNames, completions);
@@ -38,7 +38,7 @@ class EconomyTabCompletionTest {
         List<String> onlinePlayerNames = List.of("WhiteBin", "Steve");
 
         // when
-        List<String> completions = economyTabCompletion.complete(new String[]{"W"}, onlinePlayerNames);
+        List<String> completions = economyTabCompletion.complete(false, false, new String[]{"W"}, onlinePlayerNames);
 
         // then
         assertEquals(List.of("WhiteBin"), completions);
@@ -53,9 +53,54 @@ class EconomyTabCompletionTest {
         List<String> onlinePlayerNames = List.of("WhiteBin", "Steve");
 
         // when
-        List<String> completions = economyTabCompletion.complete(new String[]{"WhiteBin", ""}, onlinePlayerNames);
+        List<String> completions = economyTabCompletion.complete(false, false, new String[]{"WhiteBin", ""}, onlinePlayerNames);
 
         // then
         assertTrue(completions.isEmpty());
+    }
+
+    /**
+     * OP가 영어 명령어를 입력할 때 잔액 관리 하위 명령어를 반환하는지 검증합니다.
+     */
+    @Test
+    void completeReturnsEnglishManagementCommandsForOp() {
+        // given
+        List<String> onlinePlayerNames = List.of("WhiteBin");
+
+        // when
+        List<String> completions = economyTabCompletion.complete(true, false, new String[]{""}, onlinePlayerNames);
+
+        // then
+        assertEquals(List.of("give", "take", "set", "WhiteBin"), completions);
+    }
+
+    /**
+     * OP가 한글 명령어를 입력할 때 한글 잔액 관리 하위 명령어를 반환하는지 검증합니다.
+     */
+    @Test
+    void completeReturnsKoreanManagementCommandsForOp() {
+        // given
+        List<String> onlinePlayerNames = List.of("WhiteBin");
+
+        // when
+        List<String> completions = economyTabCompletion.complete(true, true, new String[]{""}, onlinePlayerNames);
+
+        // then
+        assertEquals(List.of("지급", "차감", "설정", "WhiteBin"), completions);
+    }
+
+    /**
+     * 잔액 관리 하위 명령어의 플레이어 인자 위치에서 플레이어 이름을 반환하는지 검증합니다.
+     */
+    @Test
+    void completeReturnsPlayerNamesForManagementCommand() {
+        // given
+        List<String> onlinePlayerNames = List.of("WhiteBin", "Steve");
+
+        // when
+        List<String> completions = economyTabCompletion.complete(true, false, new String[]{"give", "S"}, onlinePlayerNames);
+
+        // then
+        assertEquals(List.of("Steve"), completions);
     }
 }

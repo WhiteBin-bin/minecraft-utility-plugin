@@ -14,7 +14,7 @@ commands:
     usage: /창고 [player|확장 [player]|축소 [player]|정렬 [player]|초기화 [player]|공유 <player>|공유해제 <player>|공유목록|공유받은목록|로그 <player>]
   money:
     description: 자신의 잔액을 조회합니다. OP는 다른 유저의 잔액도 조회할 수 있습니다.
-    usage: /money [player]
+    usage: /money [player|give <player> <amount>|take <player> <amount>|set <player> <amount>]
   돈:
     description: 자신의 잔액을 조회합니다. OP는 다른 유저의 잔액도 조회할 수 있습니다.
-    usage: /돈 [player]
+    usage: /돈 [player|지급 <player> <amount>|차감 <player> <amount>|설정 <player> <amount>]

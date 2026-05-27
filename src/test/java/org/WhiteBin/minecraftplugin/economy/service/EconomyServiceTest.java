@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link EconomyService}의 플레이어 잔액 저장과 조회 흐름을 검증합니다.
@@ -66,6 +68,83 @@ class EconomyServiceTest {
         assertEquals(uuid, economyRepository.savedAccount.uuid());
         assertEquals("WhiteBin", economyRepository.savedAccount.name());
         assertEquals(new BigDecimal("3000"), economyRepository.savedAccount.balance());
+    }
+
+    /**
+     * 입금 시 기존 잔액에 금액을 더해 저장하는지 검증합니다.
+     */
+    @Test
+    void depositAddsAmountToBalance() {
+        // given
+        UUID uuid = UUID.randomUUID();
+        EconomyAccount savedAccount = new EconomyAccount(uuid, "WhiteBin", new BigDecimal("1000"));
+        FakeEconomyRepository economyRepository = new FakeEconomyRepository(savedAccount);
+        EconomyService economyService = new EconomyServiceImpl(economyRepository);
+
+        // when
+        BigDecimal balance = economyService.deposit(uuid, "WhiteBin", new BigDecimal("500"));
+
+        // then
+        assertEquals(new BigDecimal("1500"), balance);
+        assertEquals(new BigDecimal("1500"), economyRepository.savedAccount.balance());
+    }
+
+    /**
+     * 잔액이 충분할 때 출금 후 잔액을 저장하는지 검증합니다.
+     */
+    @Test
+    void withdrawSubtractsAmountWhenEnoughBalance() {
+        // given
+        UUID uuid = UUID.randomUUID();
+        EconomyAccount savedAccount = new EconomyAccount(uuid, "WhiteBin", new BigDecimal("1000"));
+        FakeEconomyRepository economyRepository = new FakeEconomyRepository(savedAccount);
+        EconomyService economyService = new EconomyServiceImpl(economyRepository);
+
+        // when
+        boolean withdrawn = economyService.withdraw(uuid, "WhiteBin", new BigDecimal("400"));
+
+        // then
+        assertTrue(withdrawn);
+        assertEquals(new BigDecimal("600"), economyRepository.savedAccount.balance());
+    }
+
+    /**
+     * 잔액이 부족할 때 출금하지 않는지 검증합니다.
+     */
+    @Test
+    void withdrawDoesNotSubtractWhenNotEnoughBalance() {
+        // given
+        UUID uuid = UUID.randomUUID();
+        EconomyAccount savedAccount = new EconomyAccount(uuid, "WhiteBin", new BigDecimal("100"));
+        FakeEconomyRepository economyRepository = new FakeEconomyRepository(savedAccount);
+        EconomyService economyService = new EconomyServiceImpl(economyRepository);
+
+        // when
+        boolean withdrawn = economyService.withdraw(uuid, "WhiteBin", new BigDecimal("400"));
+
+        // then
+        assertFalse(withdrawn);
+        assertEquals(null, economyRepository.savedAccount);
+    }
+
+    /**
+     * 잔액이 지정 금액 이상인지 반환하는지 검증합니다.
+     */
+    @Test
+    void hasEnoughReturnsBalanceComparisonResult() {
+        // given
+        UUID uuid = UUID.randomUUID();
+        EconomyAccount savedAccount = new EconomyAccount(uuid, "WhiteBin", new BigDecimal("1000"));
+        FakeEconomyRepository economyRepository = new FakeEconomyRepository(savedAccount);
+        EconomyService economyService = new EconomyServiceImpl(economyRepository);
+
+        // when
+        boolean enough = economyService.hasEnough(uuid, "WhiteBin", new BigDecimal("1000"));
+        boolean notEnough = economyService.hasEnough(uuid, "WhiteBin", new BigDecimal("1001"));
+
+        // then
+        assertTrue(enough);
+        assertFalse(notEnough);
     }
 
     /**
