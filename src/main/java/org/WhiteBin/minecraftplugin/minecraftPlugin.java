@@ -5,6 +5,11 @@ import org.WhiteBin.minecraftplugin.economy.listener.EconomyListener;
 import org.WhiteBin.minecraftplugin.economy.repository.EconomyRepository;
 import org.WhiteBin.minecraftplugin.economy.service.EconomyService;
 import org.WhiteBin.minecraftplugin.economy.service.EconomyServiceImpl;
+import org.WhiteBin.minecraftplugin.shop.command.ShopCommand;
+import org.WhiteBin.minecraftplugin.shop.listener.ShopListener;
+import org.WhiteBin.minecraftplugin.shop.repository.ShopRepository;
+import org.WhiteBin.minecraftplugin.shop.service.ShopService;
+import org.WhiteBin.minecraftplugin.shop.service.ShopServiceImpl;
 import org.WhiteBin.minecraftplugin.storage.command.StorageCommand;
 import org.WhiteBin.minecraftplugin.storage.listener.StorageListener;
 import org.WhiteBin.minecraftplugin.storage.repository.StorageRepository;
@@ -31,12 +36,17 @@ public final class minecraftPlugin extends JavaPlugin {
         StorageService storageService = new StorageServiceImpl(storageRepository);
         EconomyRepository economyRepository = new EconomyRepository(this);
         EconomyService economyService = new EconomyServiceImpl(economyRepository);
+        ShopRepository shopRepository = new ShopRepository(this);
+        ShopService shopService = new ShopServiceImpl(shopRepository, economyService);
         StorageCommand storageCommandExecutor = new StorageCommand(storageService);
         EconomyCommand economyCommandExecutor = new EconomyCommand(economyService);
+        ShopCommand shopCommandExecutor = new ShopCommand(shopService);
         PluginCommand storageCommand = getCommand("storage");
         PluginCommand koreanStorageCommand = getCommand("창고");
         PluginCommand moneyCommand = getCommand("money");
         PluginCommand koreanMoneyCommand = getCommand("돈");
+        PluginCommand shopCommand = getCommand("shop");
+        PluginCommand koreanShopCommand = getCommand("상점");
 
         storageCommand.setExecutor(storageCommandExecutor);
         storageCommand.setTabCompleter(storageCommandExecutor);
@@ -46,8 +56,13 @@ public final class minecraftPlugin extends JavaPlugin {
         moneyCommand.setTabCompleter(economyCommandExecutor);
         koreanMoneyCommand.setExecutor(economyCommandExecutor);
         koreanMoneyCommand.setTabCompleter(economyCommandExecutor);
+        shopCommand.setExecutor(shopCommandExecutor);
+        shopCommand.setTabCompleter(shopCommandExecutor);
+        koreanShopCommand.setExecutor(shopCommandExecutor);
+        koreanShopCommand.setTabCompleter(shopCommandExecutor);
         Bukkit.getPluginManager().registerEvents(new StorageListener(storageService), this);
         Bukkit.getPluginManager().registerEvents(new EconomyListener(economyService), this);
+        Bukkit.getPluginManager().registerEvents(new ShopListener(shopService, economyService), this);
 
         getLogger().info("창고 플러그인이 켜졌습니다.");
     }
