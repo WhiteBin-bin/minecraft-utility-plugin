@@ -10,8 +10,8 @@ import java.util.Locale;
  */
 class ShopTabCompletion {
 
-    private static final List<String> ENGLISH_OP_COMMANDS = List.of("create", "delete", "add", "remove");
-    private static final List<String> KOREAN_OP_COMMANDS = List.of("생성", "삭제", "추가", "제거");
+    private static final List<String> ENGLISH_OP_COMMANDS = List.of("create", "delete", "add", "remove", "logs");
+    private static final List<String> KOREAN_OP_COMMANDS = List.of("생성", "삭제", "추가", "제거", "로그");
     private static final String ENGLISH_LIST_COMMAND = "list";
     private static final String KOREAN_LIST_COMMAND = "목록";
 
@@ -37,6 +37,12 @@ class ShopTabCompletion {
             return filterByPrefix(shopNames, args[1]);
         }
 
+        if (args.length == 2 && isLogCommand(args[0])) {
+            List<String> candidates = new ArrayList<>(shopNames);
+            candidates.add(isKoreanLogCommand(args[0]) ? "유저" : "player");
+            return filterByPrefix(candidates, args[1]);
+        }
+
         return List.of();
     }
 
@@ -60,6 +66,14 @@ class ShopTabCompletion {
                 || command.equals("삭제")
                 || command.equals("추가")
                 || command.equals("제거");
+    }
+
+    private boolean isLogCommand(String command) {
+        return command.equalsIgnoreCase("logs") || isKoreanLogCommand(command);
+    }
+
+    private boolean isKoreanLogCommand(String command) {
+        return command.equals("로그");
     }
 
     private List<String> filterByPrefix(Collection<String> candidates, String prefix) {
