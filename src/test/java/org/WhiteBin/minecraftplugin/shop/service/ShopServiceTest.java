@@ -4,6 +4,8 @@ import org.WhiteBin.minecraftplugin.economy.model.EconomyAccount;
 import org.WhiteBin.minecraftplugin.economy.service.EconomyService;
 import org.WhiteBin.minecraftplugin.shop.model.ShopInfo;
 import org.WhiteBin.minecraftplugin.shop.model.ShopItemInfo;
+import org.WhiteBin.minecraftplugin.shop.model.ShopTransactionLog;
+import org.WhiteBin.minecraftplugin.shop.model.ShopTransactionType;
 import org.WhiteBin.minecraftplugin.shop.repository.ShopRepository;
 import org.WhiteBin.minecraftplugin.storage.service.TestItemStack;
 import org.bukkit.entity.Player;
@@ -32,7 +34,7 @@ class ShopServiceTest {
     void createShopCreatesWhenNotExists() {
         // given
         FakeShopRepository shopRepository = new FakeShopRepository();
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
 
         // when
         boolean created = shopService.createShop("food");
@@ -50,7 +52,7 @@ class ShopServiceTest {
         // given
         FakeShopRepository shopRepository = new FakeShopRepository();
         shopRepository.create("food");
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
 
         // when
         boolean created = shopService.createShop("food");
@@ -67,7 +69,7 @@ class ShopServiceTest {
         // given
         FakeShopRepository shopRepository = new FakeShopRepository();
         shopRepository.create("food");
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
         ItemStack itemStack = new TestItemStack("bread", 16);
 
         // when
@@ -86,7 +88,7 @@ class ShopServiceTest {
     void addItemReturnsNullWhenShopDoesNotExist() {
         // given
         FakeShopRepository shopRepository = new FakeShopRepository();
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
 
         // when
         ShopItemInfo itemInfo = shopService.addItem("food", new TestItemStack("bread", 16), new BigDecimal("100"));
@@ -103,7 +105,7 @@ class ShopServiceTest {
         // given
         FakeShopRepository shopRepository = new FakeShopRepository();
         shopRepository.create("food");
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
 
         // when
         ShopItemInfo itemInfo = shopService.addItem(
@@ -126,7 +128,7 @@ class ShopServiceTest {
         // given
         FakeShopRepository shopRepository = new FakeShopRepository();
         shopRepository.create("food");
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
         ItemStack itemStack = new TestItemStack("bread", 64);
 
         // when
@@ -146,7 +148,7 @@ class ShopServiceTest {
         // given
         FakeShopRepository shopRepository = new FakeShopRepository();
         shopRepository.create("food");
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
 
         // when
         ShopItemInfo itemInfo = shopService.setItem("food", 7, new TestItemStack("bread", 64), BigDecimal.ZERO);
@@ -164,7 +166,7 @@ class ShopServiceTest {
         FakeShopRepository shopRepository = new FakeShopRepository();
         shopRepository.create("food");
         shopRepository.saveItem("food", new ShopItemInfo(0, new TestItemStack("bread", 16), new BigDecimal("100"), new BigDecimal("50")));
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
 
         // when
         boolean removed = shopService.removeItem("food", 0);
@@ -183,7 +185,7 @@ class ShopServiceTest {
         FakeShopRepository shopRepository = new FakeShopRepository();
         shopRepository.create("food");
         shopRepository.saveItem("food", new ShopItemInfo(0, new TestItemStack("bread", 1), new BigDecimal("100"), new BigDecimal("50")));
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
 
         // when
         boolean moved = shopService.moveItem("food", 0, 8);
@@ -203,7 +205,7 @@ class ShopServiceTest {
         shopRepository.create("food");
         shopRepository.saveItem("food", new ShopItemInfo(0, new TestItemStack("bread", 1), new BigDecimal("100"), new BigDecimal("50")));
         shopRepository.saveItem("food", new ShopItemInfo(8, new TestItemStack("apple", 1), new BigDecimal("30"), new BigDecimal("10")));
-        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService(), new FakeShopTransactionLogService());
 
         // when
         boolean moved = shopService.moveItem("food", 0, 8);
@@ -354,6 +356,26 @@ class ShopServiceTest {
         @Override
         public boolean hasEnough(UUID uuid, String name, BigDecimal amount) {
             return false;
+        }
+    }
+
+    /**
+     * 테스트에서 로그 저장 없이 상점 거래 로그 기능을 대체하는 서비스입니다.
+     */
+    private static class FakeShopTransactionLogService implements ShopTransactionLogService {
+
+        @Override
+        public void record(ShopTransactionType type, String shopName, ShopItemInfo itemInfo, Player player, int quantity, BigDecimal unitPrice) {
+        }
+
+        @Override
+        public List<ShopTransactionLog> findByShopName(String shopName) {
+            return List.of();
+        }
+
+        @Override
+        public List<ShopTransactionLog> findByPlayerUuid(UUID playerUuid) {
+            return List.of();
         }
     }
 }

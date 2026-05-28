@@ -41,8 +41,10 @@
 - 모든 플레이어는 상점 목록을 확인하고 상점 GUI를 열 수 있습니다.
 - 상점 GUI에서 상품을 좌클릭하면 구매 수량 입력 GUI가 열리고, 구매가와 수량 기준 총액만큼 돈을 차감합니다.
 - 상점 GUI에서 상품을 우클릭하면 판매 수량 입력 GUI가 열리고, 판매가와 수량 기준 총액만큼 돈을 지급합니다.
+- OP는 상점별 거래 로그와 플레이어별 거래 로그를 조회할 수 있습니다.
 - 잔액이 부족하거나 인벤토리 공간이 부족하면 구매할 수 없습니다.
 - 상점 데이터는 `plugins/minecraft_plugin/shops/<shop>.yml`에 저장됩니다.
+- 상점 거래 로그는 `plugins/minecraft_plugin/shop-logs`에 저장됩니다.
 
 ## 명령어
 
@@ -76,6 +78,8 @@
 | `/shop add <shop>` | `/상점 추가 <shop>` | 상점 상품 편집 GUI를 엽니다.(OP만 사용가능) |
 | `/shop add <shop> <buyPrice> [sellPrice]` | `/상점 추가 <shop> <buyPrice> [sellPrice]` | 손에 든 아이템을 구매가/판매가 기준으로 상점에 바로 등록합니다.(OP만 사용가능) |
 | `/shop remove <shop> <slot>` | `/상점 제거 <shop> <slot>` | 상점 상품을 제거합니다.(OP만 사용가능) |
+| `/shop logs <shop>` | `/상점 로그 <shop>` | 특정 상점의 거래 로그를 확인합니다.(OP만 사용가능) |
+| `/shop logs player <player>` | `/상점 로그 유저 <player>` | 특정 플레이어의 상점 거래 로그를 확인합니다.(OP만 사용가능) |
 
 ## GUI
 

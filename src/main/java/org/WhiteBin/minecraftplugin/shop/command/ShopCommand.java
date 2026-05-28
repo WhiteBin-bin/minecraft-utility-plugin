@@ -4,7 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.WhiteBin.minecraftplugin.shop.inventory.ShopGuiFactory;
 import org.WhiteBin.minecraftplugin.shop.model.ShopInfo;
 import org.WhiteBin.minecraftplugin.shop.model.ShopItemInfo;
+import org.WhiteBin.minecraftplugin.shop.model.ShopTransactionLog;
 import org.WhiteBin.minecraftplugin.shop.service.ShopService;
+import org.WhiteBin.minecraftplugin.shop.service.ShopTransactionLogService;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -13,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
@@ -22,7 +27,11 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class ShopCommand implements CommandExecutor, TabCompleter {
 
+    private static final DateTimeFormatter LOG_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final int MAX_LOG_DISPLAY_COUNT = 10;
+
     private final ShopService shopService;
+    private final ShopTransactionLogService shopTransactionLogService;
     private final ShopGuiFactory shopGuiFactory = new ShopGuiFactory();
     private final ShopTabCompletion shopTabCompletion = new ShopTabCompletion();
 
@@ -71,6 +80,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
             case "delete", "삭제" -> handleDeleteCommand(player, args);
             case "add", "추가" -> handleAddCommand(player, args);
             case "remove", "제거" -> handleRemoveCommand(player, args);
+            case "logs", "로그" -> handleLogsCommand(player, args);
             case "list", "목록" -> sendShopList(player);
             default -> openShop(player, args[0]);
         }
@@ -184,6 +194,81 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
         }
 
         player.openInventory(shopGuiFactory.createShopInventory(shopInfo));
+    }
+
+    private void handleLogsCommand(Player player, String[] args) {
+        if (!hasOpPermission(player)) {
+            return;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage("사용법: /shop logs <shop> 또는 /shop logs player <player>");
+            return;
+        }
+
+        if (isPlayerLogArgument(args[1])) {
+            sendPlayerLogs(player, args);
+            return;
+        }
+
+        sendShopLogs(player, args[1]);
+    }
+
+    private void sendShopLogs(Player player, String shopName) {
+        List<ShopTransactionLog> logs = shopTransactionLogService.findByShopName(shopName);
+
+        if (logs.isEmpty()) {
+            player.sendMessage("상점 거래 로그가 없습니다.");
+            return;
+        }
+
+        player.sendMessage("[상점 거래 로그: " + shopName + "]");
+        logs.stream()
+                .limit(MAX_LOG_DISPLAY_COUNT)
+                .forEach(log -> player.sendMessage(formatLog(log)));
+    }
+
+    private void sendPlayerLogs(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage("사용법: /shop logs player <player>");
+            return;
+        }
+
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[2]);
+        List<ShopTransactionLog> logs = shopTransactionLogService.findByPlayerUuid(targetPlayer.getUniqueId());
+
+        if (logs.isEmpty()) {
+            player.sendMessage("플레이어 상점 거래 로그가 없습니다.");
+            return;
+        }
+
+        player.sendMessage("[플레이어 상점 거래 로그: " + args[2] + "]");
+        logs.stream()
+                .limit(MAX_LOG_DISPLAY_COUNT)
+                .forEach(log -> player.sendMessage(formatLog(log)));
+    }
+
+    private boolean isPlayerLogArgument(String argument) {
+        return argument.equalsIgnoreCase("player") || argument.equals("유저");
+    }
+
+    private String formatLog(ShopTransactionLog log) {
+        return "- "
+                + log.occurredAt().format(LOG_TIME_FORMATTER)
+                + " "
+                + log.type()
+                + " "
+                + log.shopName()
+                + " "
+                + log.itemName()
+                + " x"
+                + log.quantity()
+                + " 개당 "
+                + log.unitPrice().stripTrailingZeros().toPlainString()
+                + "원 총 "
+                + log.totalPrice().stripTrailingZeros().toPlainString()
+                + "원 "
+                + log.playerName();
     }
 
     private void openShopEditor(Player player, String[] args) {

@@ -5,6 +5,7 @@ import org.WhiteBin.minecraftplugin.economy.service.EconomyService;
 import org.WhiteBin.minecraftplugin.shop.model.ShopInfo;
 import org.WhiteBin.minecraftplugin.shop.model.ShopItemInfo;
 import org.WhiteBin.minecraftplugin.shop.model.ShopPurchaseResult;
+import org.WhiteBin.minecraftplugin.shop.model.ShopTransactionType;
 import org.WhiteBin.minecraftplugin.shop.repository.ShopRepository;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -22,6 +23,7 @@ public class ShopServiceImpl implements ShopService {
 
     private final ShopRepository shopRepository;
     private final EconomyService economyService;
+    private final ShopTransactionLogService shopTransactionLogService;
 
     /**
      * 상점을 생성합니다.
@@ -240,6 +242,7 @@ public class ShopServiceImpl implements ShopService {
 
         economyService.withdraw(player.getUniqueId(), player.getName(), totalPrice);
         giveItem(player, itemInfo.itemStack(), quantity);
+        shopTransactionLogService.record(ShopTransactionType.BUY, shopName, itemInfo, player, quantity, itemInfo.buyPrice());
         return ShopPurchaseResult.SUCCESS;
     }
 
@@ -272,6 +275,7 @@ public class ShopServiceImpl implements ShopService {
 
         removeItems(player, itemInfo.itemStack(), quantity);
         economyService.deposit(player.getUniqueId(), player.getName(), itemInfo.sellPrice().multiply(BigDecimal.valueOf(quantity)));
+        shopTransactionLogService.record(ShopTransactionType.SELL, shopName, itemInfo, player, quantity, itemInfo.sellPrice());
         return ShopPurchaseResult.SUCCESS;
     }
 

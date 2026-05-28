@@ -26,7 +26,7 @@ class ShopTabCompletionTest {
         List<String> completions = shopTabCompletion.complete(true, false, new String[]{""}, shopNames);
 
         // then
-        assertEquals(List.of("list", "create", "delete", "add", "remove", "food"), completions);
+        assertEquals(List.of("list", "create", "delete", "add", "remove", "logs", "food"), completions);
     }
 
     /**
@@ -56,7 +56,7 @@ class ShopTabCompletionTest {
         List<String> completions = shopTabCompletion.complete(true, true, new String[]{""}, shopNames);
 
         // then
-        assertEquals(List.of("목록", "생성", "삭제", "추가", "제거", "food"), completions);
+        assertEquals(List.of("목록", "생성", "삭제", "추가", "제거", "로그", "food"), completions);
     }
 
     /**
