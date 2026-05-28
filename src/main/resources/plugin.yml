@@ -20,7 +20,7 @@ commands:
     usage: /돈 [player|보내기 <player> <amount>|지급 <player> <amount>|차감 <player> <amount>|설정 <player> <amount>]
   shop:
     description: GUI 상점을 열거나 관리합니다.
-    usage: /shop [shop|list|create <shop>|delete <shop>|add <shop> [price]|remove <shop> <slot>]
+    usage: /shop [shop|list|create <shop>|delete <shop>|add <shop> [buyPrice] [sellPrice]|remove <shop> <slot>]
   상점:
     description: GUI 상점을 열거나 관리합니다.
-    usage: /상점 [shop|목록|생성 <shop>|삭제 <shop>|추가 <shop> [price]|제거 <shop> <slot>]
+    usage: /상점 [shop|목록|생성 <shop>|삭제 <shop>|추가 <shop> [buyPrice] [sellPrice]|제거 <shop> <slot>]

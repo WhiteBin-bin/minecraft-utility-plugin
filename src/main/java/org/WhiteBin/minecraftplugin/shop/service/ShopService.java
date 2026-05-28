@@ -56,6 +56,17 @@ public interface ShopService {
     ShopItemInfo addItem(String shopName, ItemStack itemStack, BigDecimal price);
 
     /**
+     * 상점에 상품을 등록합니다.
+     *
+     * @param shopName 상점 이름
+     * @param itemStack 등록할 아이템
+     * @param buyPrice 상품 구매가
+     * @param sellPrice 상품 판매가
+     * @return 등록된 상품 정보 또는 등록할 수 없으면 {@code null}
+     */
+    ShopItemInfo addItem(String shopName, ItemStack itemStack, BigDecimal buyPrice, BigDecimal sellPrice);
+
+    /**
      * 상점의 특정 슬롯에 상품을 등록하거나 교체합니다.
      *
      * @param shopName 상점 이름
@@ -65,6 +76,18 @@ public interface ShopService {
      * @return 등록된 상품 정보 또는 등록할 수 없으면 {@code null}
      */
     ShopItemInfo setItem(String shopName, int slot, ItemStack itemStack, BigDecimal unitPrice);
+
+    /**
+     * 상점의 특정 슬롯에 상품을 등록하거나 교체합니다.
+     *
+     * @param shopName 상점 이름
+     * @param slot 등록할 슬롯
+     * @param itemStack 등록할 아이템
+     * @param buyPrice 상품 구매가
+     * @param sellPrice 상품 판매가
+     * @return 등록된 상품 정보 또는 등록할 수 없으면 {@code null}
+     */
+    ShopItemInfo setItem(String shopName, int slot, ItemStack itemStack, BigDecimal buyPrice, BigDecimal sellPrice);
 
     /**
      * 상점 상품을 제거합니다.
@@ -85,4 +108,15 @@ public interface ShopService {
      * @return 구매 처리 결과
      */
     ShopPurchaseResult purchase(Player player, String shopName, int slot, int quantity);
+
+    /**
+     * 플레이어가 상점에 상품을 판매합니다.
+     *
+     * @param player 판매할 플레이어
+     * @param shopName 상점 이름
+     * @param slot 판매할 상품 슬롯
+     * @param quantity 판매할 수량
+     * @return 판매 처리 결과
+     */
+    ShopPurchaseResult sell(Player player, String shopName, int slot, int quantity);
 }

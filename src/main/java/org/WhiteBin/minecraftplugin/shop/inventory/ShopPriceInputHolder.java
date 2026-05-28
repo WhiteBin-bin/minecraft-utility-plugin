@@ -7,6 +7,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
+import java.math.BigDecimal;
+
 /**
  * 상점 상품 가격 입력 GUI의 소유자 정보입니다.
  */
@@ -17,6 +19,7 @@ public class ShopPriceInputHolder implements InventoryHolder {
     private final String shopName;
     private final int slot;
     private final ItemStack itemStack;
+    private final BigDecimal buyPrice;
     private final String input;
 
     @Setter

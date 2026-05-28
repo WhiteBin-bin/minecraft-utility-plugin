@@ -66,9 +66,9 @@ public class ShopGuiFactory {
      * @param input 현재 입력값
      * @return 상품 가격 입력 GUI 인벤토리
      */
-    public Inventory createPriceInputInventory(String shopName, int slot, ItemStack itemStack, String input) {
-        ShopPriceInputHolder holder = new ShopPriceInputHolder(shopName, slot, itemStack.clone(), input);
-        Inventory inventory = Bukkit.createInventory(holder, PRICE_GUI_SIZE, Component.text("개당 가격 입력"));
+    public Inventory createPriceInputInventory(String shopName, int slot, ItemStack itemStack, BigDecimal buyPrice, String input) {
+        ShopPriceInputHolder holder = new ShopPriceInputHolder(shopName, slot, itemStack.clone(), buyPrice, input);
+        Inventory inventory = Bukkit.createInventory(holder, PRICE_GUI_SIZE, Component.text(buyPrice == null ? "구매가 입력" : "판매가 입력"));
 
         holder.setInventory(inventory);
         for (int borderSlot : KEYPAD_BORDER_SLOTS) {
@@ -76,7 +76,8 @@ public class ShopGuiFactory {
         }
 
         inventory.setItem(PRICE_DISPLAY_SLOT, createButton(Material.PAPER, "입력값", List.of(
-                Component.text(input.isBlank() ? "0원" : input + "원")
+                Component.text(input.isBlank() ? "0원" : input + "원"),
+                Component.text(buyPrice == null ? "구매가를 입력하세요." : "판매가를 입력하세요.")
         )));
 
         fillKeypad(inventory, "등록");
@@ -88,14 +89,16 @@ public class ShopGuiFactory {
      *
      * @param shopName 상점 이름
      * @param itemInfo 구매할 상품 정보
+     * @param selling 판매 모드 여부
      * @param input 현재 입력값
      * @return 구매 수량 입력 GUI 인벤토리
      */
-    public Inventory createQuantityInputInventory(String shopName, ShopItemInfo itemInfo, String input) {
-        ShopQuantityInputHolder holder = new ShopQuantityInputHolder(shopName, itemInfo.slot(), itemInfo.price(), input);
-        Inventory inventory = Bukkit.createInventory(holder, PRICE_GUI_SIZE, Component.text("구매 수량 입력"));
+    public Inventory createQuantityInputInventory(String shopName, ShopItemInfo itemInfo, boolean selling, String input) {
+        BigDecimal unitPrice = selling ? itemInfo.sellPrice() : itemInfo.buyPrice();
+        ShopQuantityInputHolder holder = new ShopQuantityInputHolder(shopName, itemInfo.slot(), unitPrice, selling, input);
+        Inventory inventory = Bukkit.createInventory(holder, PRICE_GUI_SIZE, Component.text(selling ? "판매 수량 입력" : "구매 수량 입력"));
         String quantity = input.isBlank() ? "0" : input;
-        String totalPrice = itemInfo.price()
+        String totalPrice = unitPrice
                 .multiply(new BigDecimal(quantity))
                 .stripTrailingZeros()
                 .toPlainString();
@@ -107,11 +110,11 @@ public class ShopGuiFactory {
 
         inventory.setItem(PRICE_DISPLAY_SLOT, createButton(Material.PAPER, "입력값", List.of(
                 Component.text("수량: " + quantity + "개"),
-                Component.text("개당 가격: " + itemInfo.price().stripTrailingZeros().toPlainString() + "원"),
+                Component.text((selling ? "개당 판매가: " : "개당 구매가: ") + unitPrice.stripTrailingZeros().toPlainString() + "원"),
                 Component.text("총 가격: " + totalPrice + "원")
         )));
 
-        fillKeypad(inventory, "구매");
+        fillKeypad(inventory, selling ? "판매" : "구매");
         return inventory;
     }
 
@@ -135,10 +138,13 @@ public class ShopGuiFactory {
         ItemStack itemStack = itemInfo.itemStack().clone();
         ItemMeta itemMeta = itemStack.getItemMeta();
         List<Component> lore = itemMeta.lore() == null ? new ArrayList<>() : new ArrayList<>(itemMeta.lore());
-        String unitPrice = itemInfo.price().stripTrailingZeros().toPlainString();
+        String buyPrice = itemInfo.buyPrice().stripTrailingZeros().toPlainString();
+        String sellPrice = itemInfo.sellPrice().stripTrailingZeros().toPlainString();
 
-        lore.add(Component.text("개당 가격: " + unitPrice + "원"));
-        lore.add(Component.text("클릭해서 구매 수량 선택"));
+        lore.add(Component.text("개당 구매가: " + buyPrice + "원"));
+        lore.add(Component.text("개당 판매가: " + sellPrice + "원"));
+        lore.add(Component.text("좌클릭: 구매"));
+        lore.add(Component.text("우클릭: 판매"));
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
         return itemStack;

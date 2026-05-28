@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 상점 데이터를 YAML 파일에 저장하고 불러오는 저장소입니다.
@@ -104,7 +103,8 @@ public class ShopRepository {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
         String itemPath = "items." + itemInfo.slot();
 
-        config.set(itemPath + ".price", itemInfo.price().toPlainString());
+        config.set(itemPath + ".buy-price", itemInfo.buyPrice().toPlainString());
+        config.set(itemPath + ".sell-price", itemInfo.sellPrice().toPlainString());
         config.set(itemPath + ".item", itemInfo.itemStack());
         saveConfig(shopName, file, config);
     }
@@ -137,10 +137,15 @@ public class ShopRepository {
     }
 
     private ShopItemInfo toShopItemInfo(ConfigurationSection items, String slot) {
+        String legacyPrice = items.getString(slot + ".price", "0");
+        String buyPrice = items.getString(slot + ".buy-price", legacyPrice);
+        String sellPrice = items.getString(slot + ".sell-price", legacyPrice);
+
         return new ShopItemInfo(
                 Integer.parseInt(slot),
                 items.getItemStack(slot + ".item"),
-                new BigDecimal(items.getString(slot + ".price", "0"))
+                new BigDecimal(buyPrice),
+                new BigDecimal(sellPrice)
         );
     }
 

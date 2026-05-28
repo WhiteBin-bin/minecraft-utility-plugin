@@ -89,6 +89,7 @@ public class ShopListener implements Listener {
                 holder.getShopName(),
                 topSlot,
                 event.getOldCursor().clone(),
+                null,
                 ""
         ));
     }
@@ -96,7 +97,11 @@ public class ShopListener implements Listener {
     private void handleShopClick(InventoryClickEvent event, Player player, ShopInventoryHolder holder) {
         event.setCancelled(true);
 
-        if (!isTopInventorySlot(event) || isEmpty(event.getCurrentItem())) {
+        if (!isTopInventorySlot(event)) {
+            return;
+        }
+
+        if (isEmpty(event.getCurrentItem())) {
             return;
         }
 
@@ -107,7 +112,7 @@ public class ShopListener implements Listener {
             return;
         }
 
-        player.openInventory(shopGuiFactory.createQuantityInputInventory(holder.getShopName(), itemInfo, ""));
+        player.openInventory(shopGuiFactory.createQuantityInputInventory(holder.getShopName(), itemInfo, event.isRightClick(), ""));
     }
 
     private void handleEditClick(InventoryClickEvent event, Player player, ShopEditInventoryHolder holder) {
@@ -139,6 +144,7 @@ public class ShopListener implements Listener {
                 holder.getShopName(),
                 event.getRawSlot(),
                 targetItem.clone(),
+                null,
                 ""
         ));
     }
@@ -165,6 +171,7 @@ public class ShopListener implements Listener {
                 holder.getShopName(),
                 emptySlot,
                 event.getCurrentItem().clone(),
+                null,
                 ""
         ));
     }
@@ -230,14 +237,25 @@ public class ShopListener implements Listener {
     }
 
     private void registerItem(Player player, ShopPriceInputHolder holder) {
-        BigDecimal unitPrice = parseUnitPrice(player, holder.getInput());
+        BigDecimal price = parseUnitPrice(player, holder.getInput());
 
-        if (unitPrice == null) {
+        if (price == null) {
             openPriceInput(player, holder, holder.getInput());
             return;
         }
 
-        ShopItemInfo itemInfo = shopService.setItem(holder.getShopName(), holder.getSlot(), holder.getItemStack(), unitPrice);
+        if (holder.getBuyPrice() == null) {
+            player.openInventory(shopGuiFactory.createPriceInputInventory(
+                    holder.getShopName(),
+                    holder.getSlot(),
+                    holder.getItemStack(),
+                    price,
+                    ""
+            ));
+            return;
+        }
+
+        ShopItemInfo itemInfo = shopService.setItem(holder.getShopName(), holder.getSlot(), holder.getItemStack(), holder.getBuyPrice(), price);
 
         if (itemInfo == null) {
             player.sendMessage("상품을 등록할 수 없습니다.");
@@ -264,6 +282,7 @@ public class ShopListener implements Listener {
                 holder.getShopName(),
                 holder.getSlot(),
                 holder.getItemStack(),
+                holder.getBuyPrice(),
                 input
         ));
     }
@@ -280,6 +299,7 @@ public class ShopListener implements Listener {
         player.openInventory(shopGuiFactory.createQuantityInputInventory(
                 holder.getShopName(),
                 itemInfo,
+                holder.isSelling(),
                 input
         ));
     }
@@ -376,8 +396,10 @@ public class ShopListener implements Listener {
             return;
         }
 
-        ShopPurchaseResult result = shopService.purchase(player, holder.getShopName(), holder.getSlot(), quantity);
-        handlePurchaseResult(player, result);
+        ShopPurchaseResult result = holder.isSelling()
+                ? shopService.sell(player, holder.getShopName(), holder.getSlot(), quantity)
+                : shopService.purchase(player, holder.getShopName(), holder.getSlot(), quantity);
+        handlePurchaseResult(player, result, holder.isSelling());
 
         if (result == ShopPurchaseResult.SUCCESS) {
             openShopInventory(player, holder.getShopName());
@@ -408,15 +430,16 @@ public class ShopListener implements Listener {
         return itemStack == null || itemStack.getType().isAir() || itemStack.getAmount() <= 0;
     }
 
-    private void handlePurchaseResult(Player player, ShopPurchaseResult result) {
+    private void handlePurchaseResult(Player player, ShopPurchaseResult result, boolean selling) {
         switch (result) {
             case SUCCESS -> {
                 economySidebar.showBalance(player, economyService.getBalance(player.getUniqueId(), player.getName()));
-                player.sendMessage("상품을 구매했습니다.");
+                player.sendMessage(selling ? "상품을 판매했습니다." : "상품을 구매했습니다.");
             }
             case SHOP_NOT_FOUND -> player.sendMessage("상점을 찾을 수 없습니다.");
             case ITEM_NOT_FOUND -> player.sendMessage("상품을 찾을 수 없습니다.");
             case NOT_ENOUGH_MONEY -> player.sendMessage("돈이 부족합니다.");
+            case NOT_ENOUGH_ITEM -> player.sendMessage("판매할 아이템이 부족합니다.");
             case INVENTORY_FULL -> player.sendMessage("인벤토리 공간이 부족합니다.");
         }
     }

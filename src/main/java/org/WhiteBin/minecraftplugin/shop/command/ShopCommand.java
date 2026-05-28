@@ -122,9 +122,15 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        BigDecimal price = parsePositiveAmount(player, args[2]);
+        BigDecimal buyPrice = parsePositiveAmount(player, args[2]);
 
-        if (price == null) {
+        if (buyPrice == null) {
+            return;
+        }
+
+        BigDecimal sellPrice = args.length >= 4 ? parsePositiveAmount(player, args[3]) : buyPrice;
+
+        if (sellPrice == null) {
             return;
         }
 
@@ -135,7 +141,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        ShopItemInfo itemInfo = shopService.addItem(args[1], itemStack, price);
+        ShopItemInfo itemInfo = shopService.addItem(args[1], itemStack, buyPrice, sellPrice);
 
         if (itemInfo == null) {
             player.sendMessage("상점을 찾을 수 없거나 상점이 가득 찼습니다.");
