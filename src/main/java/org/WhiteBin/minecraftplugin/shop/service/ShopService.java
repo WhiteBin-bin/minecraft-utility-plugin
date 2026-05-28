@@ -99,6 +99,16 @@ public interface ShopService {
     boolean removeItem(String shopName, int slot);
 
     /**
+     * 상점 상품 위치를 이동합니다.
+     *
+     * @param shopName 상점 이름
+     * @param fromSlot 기존 슬롯
+     * @param toSlot 이동할 슬롯
+     * @return 이동했으면 {@code true}
+     */
+    boolean moveItem(String shopName, int fromSlot, int toSlot);
+
+    /**
      * 플레이어가 상점 상품을 구매합니다.
      *
      * @param player 구매할 플레이어
