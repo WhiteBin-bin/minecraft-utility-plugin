@@ -9,7 +9,17 @@ import java.math.BigDecimal;
  *
  * @param slot 상품 슬롯
  * @param itemStack 상품 아이템
- * @param price 상품 가격
+ * @param buyPrice 상품 구매가
+ * @param sellPrice 상품 판매가
  */
-public record ShopItemInfo(int slot, ItemStack itemStack, BigDecimal price) {
+public record ShopItemInfo(int slot, ItemStack itemStack, BigDecimal buyPrice, BigDecimal sellPrice) {
+
+    /**
+     * 기존 단일 가격 호출부 호환을 위한 구매가 반환 메서드입니다.
+     *
+     * @return 상품 구매가
+     */
+    public BigDecimal price() {
+        return buyPrice;
+    }
 }

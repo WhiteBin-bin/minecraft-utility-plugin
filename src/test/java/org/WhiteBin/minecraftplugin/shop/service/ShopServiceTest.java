@@ -96,6 +96,29 @@ class ShopServiceTest {
     }
 
     /**
+     * 상점 상품 등록 시 구매가와 판매가를 따로 저장하는지 검증합니다.
+     */
+    @Test
+    void addItemSavesBuyPriceAndSellPrice() {
+        // given
+        FakeShopRepository shopRepository = new FakeShopRepository();
+        shopRepository.create("food");
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+
+        // when
+        ShopItemInfo itemInfo = shopService.addItem(
+                "food",
+                new TestItemStack("bread", 16),
+                new BigDecimal("100"),
+                new BigDecimal("60")
+        );
+
+        // then
+        assertEquals(new BigDecimal("100"), itemInfo.buyPrice());
+        assertEquals(new BigDecimal("60"), itemInfo.sellPrice());
+    }
+
+    /**
      * 상점의 지정 슬롯에 상품을 등록하는지 검증합니다.
      */
     @Test
@@ -140,7 +163,7 @@ class ShopServiceTest {
         // given
         FakeShopRepository shopRepository = new FakeShopRepository();
         shopRepository.create("food");
-        shopRepository.saveItem("food", new ShopItemInfo(0, new TestItemStack("bread", 16), new BigDecimal("100")));
+        shopRepository.saveItem("food", new ShopItemInfo(0, new TestItemStack("bread", 16), new BigDecimal("100"), new BigDecimal("50")));
         ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
 
         // when

@@ -9,5 +9,6 @@ public enum ShopPurchaseResult {
     SHOP_NOT_FOUND,
     ITEM_NOT_FOUND,
     NOT_ENOUGH_MONEY,
+    NOT_ENOUGH_ITEM,
     INVENTORY_FULL
 }

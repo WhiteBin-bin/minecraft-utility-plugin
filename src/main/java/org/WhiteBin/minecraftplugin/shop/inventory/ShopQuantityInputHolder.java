@@ -18,6 +18,7 @@ public class ShopQuantityInputHolder implements InventoryHolder {
     private final String shopName;
     private final int slot;
     private final BigDecimal unitPrice;
+    private final boolean selling;
     private final String input;
 
     @Setter
