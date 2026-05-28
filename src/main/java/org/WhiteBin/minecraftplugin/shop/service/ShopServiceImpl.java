@@ -179,6 +179,33 @@ public class ShopServiceImpl implements ShopService {
     }
 
     /**
+     * 상점 상품 위치를 이동합니다.
+     *
+     * @param shopName 상점 이름
+     * @param fromSlot 기존 슬롯
+     * @param toSlot 이동할 슬롯
+     * @return 이동했으면 {@code true}
+     */
+    @Override
+    public boolean moveItem(String shopName, int fromSlot, int toSlot) {
+        ShopInfo shopInfo = shopRepository.load(shopName);
+
+        if (shopInfo == null || fromSlot == toSlot || toSlot < 0 || toSlot >= shopInfo.size()) {
+            return false;
+        }
+
+        ShopItemInfo itemInfo = findItem(shopInfo, fromSlot);
+
+        if (itemInfo == null || findItem(shopInfo, toSlot) != null) {
+            return false;
+        }
+
+        shopRepository.removeItem(shopName, fromSlot);
+        shopRepository.saveItem(shopName, new ShopItemInfo(toSlot, itemInfo.itemStack(), itemInfo.buyPrice(), itemInfo.sellPrice()));
+        return true;
+    }
+
+    /**
      * 플레이어가 상점 상품을 구매합니다.
      *
      * @param player 구매할 플레이어

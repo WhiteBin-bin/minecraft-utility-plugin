@@ -3,6 +3,7 @@ package org.WhiteBin.minecraftplugin.shop.listener;
 import lombok.RequiredArgsConstructor;
 import org.WhiteBin.minecraftplugin.economy.service.EconomyService;
 import org.WhiteBin.minecraftplugin.economy.sidebar.EconomySidebar;
+import org.WhiteBin.minecraftplugin.shop.inventory.ShopDeleteConfirmHolder;
 import org.WhiteBin.minecraftplugin.shop.inventory.ShopEditInventoryHolder;
 import org.WhiteBin.minecraftplugin.shop.inventory.ShopGuiFactory;
 import org.WhiteBin.minecraftplugin.shop.inventory.ShopInventoryHolder;
@@ -50,6 +51,11 @@ public class ShopListener implements Listener {
 
         if (event.getInventory().getHolder() instanceof ShopEditInventoryHolder holder) {
             handleEditClick(event, player, holder);
+            return;
+        }
+
+        if (event.getInventory().getHolder() instanceof ShopDeleteConfirmHolder holder) {
+            handleDeleteConfirmClick(event, player, holder);
             return;
         }
 
@@ -127,8 +133,13 @@ public class ShopListener implements Listener {
 
         event.setCancelled(true);
 
+        if (holder.getSelectedSlot() != null) {
+            handleSelectedItemMove(player, holder, event.getRawSlot());
+            return;
+        }
+
         if (event.isRightClick() && !isEmpty(event.getCurrentItem())) {
-            removeItem(player, holder.getShopName(), event.getRawSlot());
+            player.openInventory(shopGuiFactory.createDeleteConfirmInventory(holder.getShopName(), event.getRawSlot()));
             return;
         }
 
@@ -153,6 +164,10 @@ public class ShopListener implements Listener {
         event.setCancelled(true);
 
         if (isTopInventorySlot(event)) {
+            if (!isEmpty(event.getCurrentItem())) {
+                openEditInventory(player, holder.getShopName(), event.getRawSlot());
+                player.sendMessage(event.getRawSlot() + "번 슬롯 상품을 선택했습니다. 이동할 빈 슬롯을 클릭하세요.");
+            }
             return;
         }
 
@@ -174,6 +189,23 @@ public class ShopListener implements Listener {
                 null,
                 ""
         ));
+    }
+
+    private void handleDeleteConfirmClick(InventoryClickEvent event, Player player, ShopDeleteConfirmHolder holder) {
+        event.setCancelled(true);
+
+        if (!isTopInventorySlot(event)) {
+            return;
+        }
+
+        if (event.getRawSlot() == ShopGuiFactory.DELETE_CONFIRM_SLOT) {
+            removeItem(player, holder.getShopName(), holder.getSlot());
+            return;
+        }
+
+        if (event.getRawSlot() == ShopGuiFactory.DELETE_CANCEL_SLOT) {
+            openEditInventory(player, holder.getShopName());
+        }
     }
 
     private void handlePriceInputClick(InventoryClickEvent event, Player player, ShopPriceInputHolder holder) {
@@ -277,6 +309,28 @@ public class ShopListener implements Listener {
         openEditInventory(player, shopName);
     }
 
+    private void handleSelectedItemMove(Player player, ShopEditInventoryHolder holder, int toSlot) {
+        if (holder.getSelectedSlot() == toSlot) {
+            openEditInventory(player, holder.getShopName());
+            return;
+        }
+
+        if (findStoredItemInfo(holder.getShopName(), toSlot) != null) {
+            player.sendMessage("이미 상품이 있는 슬롯으로는 이동할 수 없습니다.");
+            openEditInventory(player, holder.getShopName(), holder.getSelectedSlot());
+            return;
+        }
+
+        if (!shopService.moveItem(holder.getShopName(), holder.getSelectedSlot(), toSlot)) {
+            player.sendMessage("상품 위치를 이동할 수 없습니다.");
+            openEditInventory(player, holder.getShopName());
+            return;
+        }
+
+        player.sendMessage(holder.getSelectedSlot() + "번 슬롯 상품을 " + toSlot + "번 슬롯으로 이동했습니다.");
+        openEditInventory(player, holder.getShopName());
+    }
+
     private void openPriceInput(Player player, ShopPriceInputHolder holder, String input) {
         player.openInventory(shopGuiFactory.createPriceInputInventory(
                 holder.getShopName(),
@@ -317,6 +371,10 @@ public class ShopListener implements Listener {
     }
 
     private void openEditInventory(Player player, String shopName) {
+        openEditInventory(player, shopName, null);
+    }
+
+    private void openEditInventory(Player player, String shopName, Integer selectedSlot) {
         ShopInfo shopInfo = shopService.getShop(shopName);
 
         if (shopInfo == null) {
@@ -325,7 +383,7 @@ public class ShopListener implements Listener {
             return;
         }
 
-        player.openInventory(shopGuiFactory.createShopEditInventory(shopInfo));
+        player.openInventory(shopGuiFactory.createShopEditInventory(shopInfo, selectedSlot));
     }
 
     private ItemStack findStoredItem(String shopName, int slot) {

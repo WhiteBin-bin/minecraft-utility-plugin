@@ -22,6 +22,8 @@ public class ShopGuiFactory {
     public static final int PRICE_BACKSPACE_SLOT = 49;
     public static final int PRICE_CANCEL_SLOT = 45;
     public static final int PRICE_DISPLAY_SLOT = 4;
+    public static final int DELETE_CONFIRM_SLOT = 11;
+    public static final int DELETE_CANCEL_SLOT = 15;
 
     private static final int[] DIGIT_SLOTS = {40, 12, 13, 14, 21, 22, 23, 30, 31, 32};
     private static final int[] KEYPAD_BORDER_SLOTS = {2, 3, 5, 6, 11, 15, 20, 24, 29, 33, 38, 39, 41, 42, 47, 48, 50, 51};
@@ -49,11 +51,39 @@ public class ShopGuiFactory {
      * @return 상점 편집 GUI 인벤토리
      */
     public Inventory createShopEditInventory(ShopInfo shopInfo) {
-        ShopEditInventoryHolder holder = new ShopEditInventoryHolder(shopInfo.name());
+        return createShopEditInventory(shopInfo, null);
+    }
+
+    /**
+     * 상점 편집 GUI 인벤토리를 생성합니다.
+     *
+     * @param shopInfo 상점 정보
+     * @param selectedSlot 이동 대상으로 선택된 슬롯
+     * @return 상점 편집 GUI 인벤토리
+     */
+    public Inventory createShopEditInventory(ShopInfo shopInfo, Integer selectedSlot) {
+        ShopEditInventoryHolder holder = new ShopEditInventoryHolder(shopInfo.name(), selectedSlot);
         Inventory inventory = Bukkit.createInventory(holder, shopInfo.size(), Component.text(shopInfo.name() + " 상점 편집"));
 
         holder.setInventory(inventory);
-        shopInfo.items().forEach(itemInfo -> inventory.setItem(itemInfo.slot(), createDisplayItem(itemInfo)));
+        shopInfo.items().forEach(itemInfo -> inventory.setItem(itemInfo.slot(), createEditDisplayItem(itemInfo, selectedSlot)));
+        return inventory;
+    }
+
+    /**
+     * 상점 상품 삭제 확인 GUI 인벤토리를 생성합니다.
+     *
+     * @param shopName 상점 이름
+     * @param slot 삭제할 상품 슬롯
+     * @return 삭제 확인 GUI 인벤토리
+     */
+    public Inventory createDeleteConfirmInventory(String shopName, int slot) {
+        ShopDeleteConfirmHolder holder = new ShopDeleteConfirmHolder(shopName, slot);
+        Inventory inventory = Bukkit.createInventory(holder, 27, Component.text("상품 삭제 확인"));
+
+        holder.setInventory(inventory);
+        inventory.setItem(DELETE_CONFIRM_SLOT, createButton(Material.RED_DYE, "삭제", List.of(Component.text(slot + "번 슬롯 상품 삭제"))));
+        inventory.setItem(DELETE_CANCEL_SLOT, createButton(Material.LIME_DYE, "취소", List.of(Component.text("상점 편집으로 돌아가기"))));
         return inventory;
     }
 
@@ -135,6 +165,10 @@ public class ShopGuiFactory {
     }
 
     private ItemStack createDisplayItem(ShopItemInfo itemInfo) {
+        return createDisplayItem(itemInfo, null);
+    }
+
+    private ItemStack createDisplayItem(ShopItemInfo itemInfo, Integer selectedSlot) {
         ItemStack itemStack = itemInfo.itemStack().clone();
         ItemMeta itemMeta = itemStack.getItemMeta();
         List<Component> lore = itemMeta.lore() == null ? new ArrayList<>() : new ArrayList<>(itemMeta.lore());
@@ -145,6 +179,29 @@ public class ShopGuiFactory {
         lore.add(Component.text("개당 판매가: " + sellPrice + "원"));
         lore.add(Component.text("좌클릭: 구매"));
         lore.add(Component.text("우클릭: 판매"));
+        if (selectedSlot != null && selectedSlot == itemInfo.slot()) {
+            lore.add(Component.text("이동 선택됨"));
+        }
+        itemMeta.lore(lore);
+        itemStack.setItemMeta(itemMeta);
+        return itemStack;
+    }
+
+    private ItemStack createEditDisplayItem(ShopItemInfo itemInfo, Integer selectedSlot) {
+        ItemStack itemStack = itemInfo.itemStack().clone();
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        List<Component> lore = itemMeta.lore() == null ? new ArrayList<>() : new ArrayList<>(itemMeta.lore());
+        String buyPrice = itemInfo.buyPrice().stripTrailingZeros().toPlainString();
+        String sellPrice = itemInfo.sellPrice().stripTrailingZeros().toPlainString();
+
+        lore.add(Component.text("개당 구매가: " + buyPrice + "원"));
+        lore.add(Component.text("개당 판매가: " + sellPrice + "원"));
+        lore.add(Component.text("좌클릭: 가격 수정"));
+        lore.add(Component.text("Shift+좌클릭: 위치 이동 선택"));
+        lore.add(Component.text("우클릭: 삭제 확인"));
+        if (selectedSlot != null && selectedSlot == itemInfo.slot()) {
+            lore.add(Component.text("이동 선택됨"));
+        }
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
         return itemStack;

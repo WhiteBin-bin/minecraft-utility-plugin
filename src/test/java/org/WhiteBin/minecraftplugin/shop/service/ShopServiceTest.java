@@ -175,6 +175,44 @@ class ShopServiceTest {
     }
 
     /**
+     * 상점에 등록된 상품 위치를 빈 슬롯으로 이동하는지 검증합니다.
+     */
+    @Test
+    void moveItemMovesSavedItemToEmptySlot() {
+        // given
+        FakeShopRepository shopRepository = new FakeShopRepository();
+        shopRepository.create("food");
+        shopRepository.saveItem("food", new ShopItemInfo(0, new TestItemStack("bread", 1), new BigDecimal("100"), new BigDecimal("50")));
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+
+        // when
+        boolean moved = shopService.moveItem("food", 0, 8);
+
+        // then
+        assertTrue(moved);
+        assertEquals(8, shopRepository.load("food").items().getFirst().slot());
+    }
+
+    /**
+     * 이미 상품이 있는 슬롯으로는 상품 위치를 이동하지 않는지 검증합니다.
+     */
+    @Test
+    void moveItemReturnsFalseWhenTargetSlotIsOccupied() {
+        // given
+        FakeShopRepository shopRepository = new FakeShopRepository();
+        shopRepository.create("food");
+        shopRepository.saveItem("food", new ShopItemInfo(0, new TestItemStack("bread", 1), new BigDecimal("100"), new BigDecimal("50")));
+        shopRepository.saveItem("food", new ShopItemInfo(8, new TestItemStack("apple", 1), new BigDecimal("30"), new BigDecimal("10")));
+        ShopService shopService = new ShopServiceImpl(shopRepository, new FakeEconomyService());
+
+        // when
+        boolean moved = shopService.moveItem("food", 0, 8);
+
+        // then
+        assertFalse(moved);
+    }
+
+    /**
      * 테스트에서 파일 시스템 접근 없이 상점 저장을 검증하기 위한 저장소입니다.
      */
     private static class FakeShopRepository extends ShopRepository {
